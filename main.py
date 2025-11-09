@@ -276,6 +276,143 @@ async def serve_clip(clip_filename: str):
     )
 
 
+@app.post("/api/compare")
+async def create_comparison(clips: List[str] = Form(...)):
+    """
+    Create a side-by-side comparison video from multiple clips
+
+    Args:
+        clips: List of clip filenames to compare (2-3 clips)
+
+    Returns:
+        URL to the combined comparison video
+    """
+    try:
+        # Parse clips list if it's a JSON string
+        if isinstance(clips, str):
+            clips = json.loads(clips)
+
+        print(f"\n🎬 Creating comparison video with {len(clips)} clips")
+        print(f"📋 Clips: {clips}")
+
+        if len(clips) < 2:
+            raise HTTPException(status_code=400, detail="Need at least 2 clips to compare")
+        if len(clips) > 3:
+            raise HTTPException(status_code=400, detail="Maximum 3 clips for comparison")
+
+        # Verify all clips exist
+        clip_paths = []
+        for clip in clips:
+            clip_path = CLIPS_DIR / clip
+            if not clip_path.exists():
+                raise HTTPException(status_code=404, detail=f"Clip not found: {clip}")
+            clip_paths.append(str(clip_path))
+
+        # Generate output filename
+        comparison_id = str(uuid.uuid4())
+        output_filename = f"comparison_{comparison_id}.mp4"
+        output_path = CLIPS_DIR / output_filename
+
+        # Create side-by-side video using FFmpeg
+        success = await create_sidebyside_video(clip_paths, str(output_path))
+
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to create comparison video")
+
+        print(f"✅ Comparison video created: {output_filename}")
+
+        return JSONResponse({
+            "success": True,
+            "comparison_url": f"/api/clips/{output_filename}"
+        })
+
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid clips format: {e}")
+    except Exception as e:
+        print(f"❌ Error creating comparison: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def create_sidebyside_video(clip_paths: List[str], output_path: str) -> bool:
+    """
+    Use FFmpeg to create a side-by-side comparison video
+
+    Args:
+        clip_paths: List of paths to input clips (2-3 clips)
+        output_path: Path to save the output comparison video
+
+    Returns:
+        True if successful, False otherwise
+    """
+    try:
+        num_clips = len(clip_paths)
+
+        if num_clips == 2:
+            # Side-by-side (horizontal stack)
+            filter_complex = "[0:v][1:v]hstack=inputs=2[v]"
+            audio_mix = "[0:a][1:a]amerge=inputs=2[a]"
+        elif num_clips == 3:
+            # Three videos side-by-side
+            filter_complex = "[0:v][1:v][2:v]hstack=inputs=3[v]"
+            audio_mix = "[0:a][1:a][2:a]amerge=inputs=3[a]"
+        else:
+            return False
+
+        # Build FFmpeg command
+        cmd = ["ffmpeg"]
+
+        # Add all input files
+        for clip_path in clip_paths:
+            cmd.extend(["-i", clip_path])
+
+        # Add filter complex for video and audio
+        cmd.extend([
+            "-filter_complex", f"{filter_complex};{audio_mix}",
+            "-map", "[v]",
+            "-map", "[a]",
+            "-c:v", "libx264",
+            "-preset", "fast",
+            "-crf", "23",
+            "-c:a", "aac",
+            "-ac", "2",  # Stereo output
+            "-y",
+            output_path
+        ])
+
+        print(f"   🎬 Running FFmpeg comparison: {' '.join(cmd)}")
+
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=120  # Longer timeout for comparison
+        )
+
+        if result.returncode == 0:
+            if Path(output_path).exists():
+                file_size = Path(output_path).stat().st_size
+                print(f"   ✅ Comparison video created! Size: {file_size} bytes")
+                return True
+            else:
+                print(f"   ❌ FFmpeg returned 0 but file doesn't exist!")
+                return False
+        else:
+            print(f"   ❌ FFmpeg failed with code {result.returncode}")
+            print(f"   stderr: {result.stderr[:500]}")
+            return False
+
+    except subprocess.TimeoutExpired:
+        print(f"   ⏱️  FFmpeg timeout for comparison video")
+        return False
+    except Exception as e:
+        print(f"   ❌ FFmpeg error: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
 @app.delete("/api/sessions/{session_id}")
 async def delete_session(session_id: str):
     """Delete all files for a session (cleanup)"""

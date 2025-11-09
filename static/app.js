@@ -23,10 +23,6 @@ const compareBtn = document.getElementById('compare-btn');
 const selectedCountSpan = document.getElementById('selected-count');
 const comparisonSection = document.getElementById('comparison-section');
 const comparisonGrid = document.getElementById('comparison-grid');
-const playAllBtn = document.getElementById('play-all-btn');
-const pauseAllBtn = document.getElementById('pause-all-btn');
-const restartAllBtn = document.getElementById('restart-all-btn');
-const playbackSpeedSelect = document.getElementById('playback-speed');
 const backToClipsBtn = document.getElementById('back-to-clips-btn');
 
 // State
@@ -422,109 +418,78 @@ function updateSelectedCount() {
 /**
  * Show comparison view with selected clips
  */
-function showComparison() {
+async function showComparison() {
     if (selectedClips.length < 2) return;
+    if (selectedClips.length > 3) {
+        alert('Please select 2-3 clips for comparison');
+        return;
+    }
 
-    // Hide results, show comparison
+    // Hide results, show loading
     resultsSection.style.display = 'none';
-    comparisonSection.style.display = 'block';
+    processingSection.style.display = 'block';
 
-    // Clear comparison grid
-    comparisonGrid.innerHTML = '';
+    try {
+        console.log('🎬 Creating server-side comparison video...');
 
-    // Add selected clips to comparison view
-    selectedClips.forEach(clip => {
-        const compareItem = document.createElement('div');
-        compareItem.className = 'compare-item';
-
-        compareItem.innerHTML = `
-            <h4>${clip.label}</h4>
-            <video class="compare-video" loop playsinline webkit-playsinline preload="auto">
-                <source src="${clip.url}" type="video/mp4">
-                Your browser does not support video playback.
-            </video>
-        `;
-
-        comparisonGrid.appendChild(compareItem);
-    });
-
-    // Initialize all videos
-    const videos = comparisonGrid.querySelectorAll('.compare-video');
-    videos.forEach(video => {
-        video.load(); // Ensure videos are loaded
-        video.currentTime = 0; // Start at beginning
-        video.pause(); // Make sure all start paused
-    });
-
-    console.log(`🎬 Comparison view with ${selectedClips.length} clips ready`);
-}
-
-/**
- * Play all comparison videos simultaneously
- */
-function playAll() {
-    const videos = comparisonGrid.querySelectorAll('.compare-video');
-
-    // Pause all first
-    videos.forEach(video => video.pause());
-
-    // Reset all to start for perfect sync
-    videos.forEach(video => {
-        video.currentTime = 0;
-    });
-
-    // Use requestAnimationFrame to ensure videos start at the same time
-    requestAnimationFrame(() => {
-        const playPromises = [];
-        videos.forEach(video => {
-            playPromises.push(video.play().catch(err => console.log('Play prevented:', err)));
+        // Extract clip filenames from URLs
+        const clipFilenames = selectedClips.map(clip => {
+            const urlParts = clip.url.split('/');
+            return urlParts[urlParts.length - 1];
         });
 
-        // Wait for all to start playing
-        Promise.all(playPromises).then(() => {
-            console.log(`▶️ Playing ${videos.length} videos in sync`);
+        console.log('📋 Clip filenames:', clipFilenames);
+
+        // Create form data
+        const formData = new FormData();
+        formData.append('clips', JSON.stringify(clipFilenames));
+
+        // Request comparison video from server
+        const response = await fetch('/api/compare', {
+            method: 'POST',
+            body: formData
         });
-    });
-}
 
-/**
- * Pause all comparison videos
- */
-function pauseAll() {
-    const videos = comparisonGrid.querySelectorAll('.compare-video');
-    videos.forEach(video => video.pause());
-    console.log(`⏸️ Paused ${videos.length} videos`);
-}
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Server error: ${response.status} - ${errorText}`);
+        }
 
-/**
- * Restart all comparison videos
- */
-function restartAll() {
-    const videos = comparisonGrid.querySelectorAll('.compare-video');
+        const result = await response.json();
+        console.log('✅ Comparison created:', result);
 
-    // Reset time first
-    videos.forEach(video => {
-        video.currentTime = 0;
-    });
+        if (result.success && result.comparison_url) {
+            // Show comparison view with single combined video
+            processingSection.style.display = 'none';
+            comparisonSection.style.display = 'block';
 
-    // Then play all
-    videos.forEach(video => {
-        video.play().catch(err => console.log('Play prevented:', err));
-    });
+            // Clear comparison grid
+            comparisonGrid.innerHTML = '';
 
-    console.log(`⏮️ Restarted ${videos.length} videos`);
-}
+            // Create single comparison video element
+            const compareItem = document.createElement('div');
+            compareItem.className = 'compare-item-full';
 
-/**
- * Update playback speed for all comparison videos
- */
-function updatePlaybackSpeed() {
-    const speed = parseFloat(playbackSpeedSelect.value);
-    const videos = comparisonGrid.querySelectorAll('.compare-video');
-    videos.forEach(video => {
-        video.playbackRate = speed;
-    });
-    console.log(`⚡ Playback speed set to ${speed}x`);
+            compareItem.innerHTML = `
+                <video class="compare-video" controls loop playsinline webkit-playsinline>
+                    <source src="${result.comparison_url}" type="video/mp4">
+                    Your browser does not support video playback.
+                </video>
+            `;
+
+            comparisonGrid.appendChild(compareItem);
+
+            console.log(`🎉 Comparison video ready: ${result.comparison_url}`);
+        } else {
+            throw new Error('Failed to create comparison video');
+        }
+
+    } catch (error) {
+        console.error('❌ Comparison error:', error);
+        processingSection.style.display = 'none';
+        resultsSection.style.display = 'block';
+        alert(`Error creating comparison: ${error.message}`);
+    }
 }
 
 /**
@@ -542,10 +507,6 @@ newSessionBtn.addEventListener('click', startNewSession);
 
 // Comparison event listeners
 compareBtn.addEventListener('click', showComparison);
-playAllBtn.addEventListener('click', playAll);
-pauseAllBtn.addEventListener('click', pauseAll);
-restartAllBtn.addEventListener('click', restartAll);
-playbackSpeedSelect.addEventListener('change', updatePlaybackSpeed);
 backToClipsBtn.addEventListener('click', backToClips);
 
 // Initialize on page load
