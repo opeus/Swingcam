@@ -647,11 +647,11 @@ function showPositionComparison(frames, title) {
         framePair.innerHTML = `
             <div class="frame-item">
                 <h4>${selectedClips[0].label} - Frame ${frame.frame_num}</h4>
-                <img src="${frame.clip1}" alt="Frame ${frame.frame_num}">
+                <img src="${frame.clip1}" alt="Frame ${frame.frame_num}" loading="eager">
             </div>
             <div class="frame-item">
                 <h4>${selectedClips[1].label} - Frame ${frame.frame_num}</h4>
-                <img src="${frame.clip2}" alt="Frame ${frame.frame_num}">
+                <img src="${frame.clip2}" alt="Frame ${frame.frame_num}" loading="eager">
             </div>
         `;
 

@@ -495,9 +495,13 @@ header h1 {
 
 .frame-item img {
     width: 100%;
+    height: auto;
+    min-height: 150px;
+    display: block;
     border-radius: 0.375rem;
     border: 1px solid var(--border-color);
-    background: #000;
+    background: #f0f0f0;
+    object-fit: contain;
 }
 
 /* Instructions */
