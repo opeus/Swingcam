@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Swingcam - Analyze Your Swing</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🎾 Swingcam</h1>
+            <p class="tagline">Record, Detect, Compare</p>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Recording Section -->
+            <section id="recording-section" class="card">
+                <h2>Step 1: Record Your Swings</h2>
+
+                <!-- Video Preview -->
+                <div class="video-container">
+                    <video id="preview" autoplay muted playsinline></video>
+                    <div id="audio-indicator" class="audio-indicator">
+                        <div class="pulse"></div>
+                        <span id="swing-count">0 swings detected</span>
+                    </div>
+                </div>
+
+                <!-- Controls -->
+                <div class="controls">
+                    <button id="start-btn" class="btn btn-primary">
+                        <span class="icon">⏺</span> Start Recording
+                    </button>
+                    <button id="stop-btn" class="btn btn-danger" disabled>
+                        <span class="icon">⏹</span> Stop Recording
+                    </button>
+                </div>
+
+                <!-- Detected Swings List -->
+                <div id="swings-list" class="swings-list" style="display: none;">
+                    <h3>Detected Swings</h3>
+                    <ul id="swing-timestamps"></ul>
+                </div>
+
+                <!-- Status Messages -->
+                <div id="status" class="status"></div>
+            </section>
+
+            <!-- Processing Section -->
+            <section id="processing-section" class="card" style="display: none;">
+                <h2>Processing Your Swings...</h2>
+                <div class="loader"></div>
+                <p class="processing-text">Slicing your video into clips. This will take just a moment.</p>
+            </section>
+
+            <!-- Results Section -->
+            <section id="results-section" class="card" style="display: none;">
+                <h2>Step 2: Review Your Swings</h2>
+
+                <div class="clips-grid" id="clips-grid">
+                    <!-- Clips will be inserted here dynamically -->
+                </div>
+
+                <div class="controls">
+                    <button id="new-session-btn" class="btn btn-secondary">
+                        <span class="icon">🔄</span> Record New Session
+                    </button>
+                </div>
+            </section>
+
+            <!-- Instructions -->
+            <section class="card instructions">
+                <h3>How to Use</h3>
+                <ol>
+                    <li><strong>Start Recording:</strong> Click the "Start Recording" button and grant camera/microphone permissions</li>
+                    <li><strong>Take Your Swings:</strong> The app will automatically detect the impact sound ("wack!") of each swing</li>
+                    <li><strong>Stop Recording:</strong> Click "Stop Recording" when you're done</li>
+                    <li><strong>Review Clips:</strong> Each swing will be automatically clipped and ready to review</li>
+                    <li><strong>Compare:</strong> Watch your clips side-by-side to spot differences in your technique</li>
+                </ol>
+
+                <div class="tips">
+                    <h4>Tips for Best Results</h4>
+                    <ul>
+                        <li>Make sure your device's microphone can clearly hear the swing impact</li>
+                        <li>Position the camera so your full swing is visible</li>
+                        <li>Take 3-5 swings per session for easy comparison</li>
+                        <li>Wait a second or two between swings for cleaner detection</li>
+                    </ul>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer>
+            <p>Built with ❤️ for swing analysis | <a href="https://github.com/yourusername/swingcam" target="_blank">View on GitHub</a></p>
+        </footer>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
