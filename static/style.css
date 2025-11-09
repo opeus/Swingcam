@@ -465,6 +465,15 @@ footer a:hover {
 }
 
 /* Responsive */
+
+/* Tablet and small desktop - 2 column comparison */
+@media (min-width: 769px) and (max-width: 1024px) {
+    .comparison-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* Mobile */
 @media (max-width: 768px) {
     header h1 {
         font-size: 2rem;
@@ -489,5 +498,36 @@ footer a:hover {
     .btn {
         width: 100%;
         justify-content: center;
+    }
+
+    /* Mobile comparison layout - show clips in vertical stack */
+    .comparison-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .comparison-controls {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .comparison-controls .btn {
+        width: 100%;
+    }
+
+    .playback-speed {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .playback-speed select {
+        flex: 1;
+    }
+
+    /* Ensure videos stay inline on mobile */
+    .compare-video,
+    .clip-item video {
+        max-width: 100%;
+        height: auto;
     }
 }

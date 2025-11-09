@@ -328,7 +328,7 @@ function displayClips(clipUrls, timestamps) {
                 </label>
                 <h4>Swing ${index + 1}</h4>
             </div>
-            <video controls loop>
+            <video controls loop playsinline>
                 <source src="${url}" type="video/mp4">
                 Your browser does not support video playback.
             </video>
@@ -439,7 +439,7 @@ function showComparison() {
 
         compareItem.innerHTML = `
             <h4>${clip.label}</h4>
-            <video class="compare-video" loop>
+            <video class="compare-video" loop playsinline webkit-playsinline>
                 <source src="${clip.url}" type="video/mp4">
                 Your browser does not support video playback.
             </video>
