@@ -651,13 +651,11 @@ function showPositionComparison(frames, title) {
         framePair.innerHTML = `
             <div class="frame-item">
                 <h4>${selectedClips[0].label} - Frame ${frame.frame_num}</h4>
-                <img src="${frame.clip1}" alt="Frame ${frame.frame_num}" loading="eager" onerror="console.error('Failed to load image:', '${frame.clip1}')">
-                <p style="font-size: 0.7rem; color: #666; word-break: break-all; margin-top: 0.5rem;">${frame.clip1}</p>
+                <img src="${frame.clip1}" alt="Frame ${frame.frame_num}" loading="eager">
             </div>
             <div class="frame-item">
                 <h4>${selectedClips[1].label} - Frame ${frame.frame_num}</h4>
-                <img src="${frame.clip2}" alt="Frame ${frame.frame_num}" loading="eager" onerror="console.error('Failed to load image:', '${frame.clip2}')">
-                <p style="font-size: 0.7rem; color: #666; word-break: break-all; margin-top: 0.5rem;">${frame.clip2}</p>
+                <img src="${frame.clip2}" alt="Frame ${frame.frame_num}" loading="eager">
             </div>
         `;
 

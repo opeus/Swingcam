@@ -548,14 +548,13 @@ async def extract_position_frames(clip_paths: List[str], comparison_id: str) -> 
                 print(f"   📸 Extracting frame {frame_num + 1}/10 at {timestamp:.2f}s from clip {clip_idx}")
 
                 # Extract frame at specific timestamp
-                # Put -ss after -i for better accuracy with short videos
+                # Using -vf scale to maintain aspect ratio
                 cmd = [
                     "ffmpeg",
                     "-i", clip_path,
                     "-ss", str(timestamp),  # Seek to timestamp
                     "-vframes", "1",  # Extract 1 frame
-                    "-f", "image2",  # Force image format
-                    "-vcodec", "mjpeg",  # MJPEG codec for JPEG
+                    "-vf", "scale=iw:ih:force_original_aspect_ratio=decrease",  # Maintain aspect ratio
                     "-q:v", "2",  # High quality
                     "-y",
                     output_path
