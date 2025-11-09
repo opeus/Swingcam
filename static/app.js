@@ -561,10 +561,12 @@ async function createComparison() {
         }
 
         const result = await response.json();
+        console.log('📥 Server response:', result);
 
         if (currentMode === 'position') {
             // Position comparison returns frames
             if (result.success && result.frames) {
+                console.log('🎞️ Received frames:', result.frames);
                 showPositionComparison(result.frames, title);
             } else {
                 throw new Error('Failed to create position comparison');
@@ -641,17 +643,21 @@ function showPositionComparison(frames, title) {
     positionFrames.className = 'position-frames';
 
     frames.forEach(frame => {
+        console.log('📸 Adding frame pair:', frame);
+
         const framePair = document.createElement('div');
         framePair.className = 'frame-pair';
 
         framePair.innerHTML = `
             <div class="frame-item">
                 <h4>${selectedClips[0].label} - Frame ${frame.frame_num}</h4>
-                <img src="${frame.clip1}" alt="Frame ${frame.frame_num}" loading="eager">
+                <img src="${frame.clip1}" alt="Frame ${frame.frame_num}" loading="eager" onerror="console.error('Failed to load image:', '${frame.clip1}')">
+                <p style="font-size: 0.7rem; color: #666; word-break: break-all; margin-top: 0.5rem;">${frame.clip1}</p>
             </div>
             <div class="frame-item">
                 <h4>${selectedClips[1].label} - Frame ${frame.frame_num}</h4>
-                <img src="${frame.clip2}" alt="Frame ${frame.frame_num}" loading="eager">
+                <img src="${frame.clip2}" alt="Frame ${frame.frame_num}" loading="eager" onerror="console.error('Failed to load image:', '${frame.clip2}')">
+                <p style="font-size: 0.7rem; color: #666; word-break: break-all; margin-top: 0.5rem;">${frame.clip2}</p>
             </div>
         `;
 
