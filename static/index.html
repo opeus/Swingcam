@@ -65,8 +65,48 @@
                 </div>
 
                 <div class="controls">
+                    <button id="compare-btn" class="btn btn-primary" disabled>
+                        <span class="icon">⚡</span> Compare Selected (<span id="selected-count">0</span>)
+                    </button>
                     <button id="new-session-btn" class="btn btn-secondary">
                         <span class="icon">🔄</span> Record New Session
+                    </button>
+                </div>
+            </section>
+
+            <!-- Comparison Section -->
+            <section id="comparison-section" class="card" style="display: none;">
+                <h2>Compare Swings Side-by-Side</h2>
+
+                <div class="comparison-controls">
+                    <button id="play-all-btn" class="btn btn-primary">
+                        <span class="icon">▶️</span> Play All
+                    </button>
+                    <button id="pause-all-btn" class="btn btn-secondary">
+                        <span class="icon">⏸️</span> Pause All
+                    </button>
+                    <button id="restart-all-btn" class="btn btn-secondary">
+                        <span class="icon">⏮️</span> Restart All
+                    </button>
+                    <label class="playback-speed">
+                        Speed:
+                        <select id="playback-speed">
+                            <option value="0.25">0.25x</option>
+                            <option value="0.5">0.5x</option>
+                            <option value="1" selected>1x</option>
+                            <option value="1.5">1.5x</option>
+                            <option value="2">2x</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="comparison-grid" id="comparison-grid">
+                    <!-- Selected clips will be shown here -->
+                </div>
+
+                <div class="controls">
+                    <button id="back-to-clips-btn" class="btn btn-secondary">
+                        <span class="icon">←</span> Back to All Clips
                     </button>
                 </div>
             </section>
@@ -79,7 +119,7 @@
                     <li><strong>Take Your Swings:</strong> The app will automatically detect the impact sound ("wack!") of each swing</li>
                     <li><strong>Stop Recording:</strong> Click "Stop Recording" when you're done</li>
                     <li><strong>Review Clips:</strong> Each swing will be automatically clipped and ready to review</li>
-                    <li><strong>Compare:</strong> Watch your clips side-by-side to spot differences in your technique</li>
+                    <li><strong>Compare:</strong> Select 2 or more clips and click "Compare Selected" to watch them side-by-side with synchronized playback</li>
                 </ol>
 
                 <div class="tips">

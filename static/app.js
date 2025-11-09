@@ -18,6 +18,17 @@ const resultsSection = document.getElementById('results-section');
 const clipsGrid = document.getElementById('clips-grid');
 const newSessionBtn = document.getElementById('new-session-btn');
 
+// Comparison elements
+const compareBtn = document.getElementById('compare-btn');
+const selectedCountSpan = document.getElementById('selected-count');
+const comparisonSection = document.getElementById('comparison-section');
+const comparisonGrid = document.getElementById('comparison-grid');
+const playAllBtn = document.getElementById('play-all-btn');
+const pauseAllBtn = document.getElementById('pause-all-btn');
+const restartAllBtn = document.getElementById('restart-all-btn');
+const playbackSpeedSelect = document.getElementById('playback-speed');
+const backToClipsBtn = document.getElementById('back-to-clips-btn');
+
 // State
 let mediaStream = null;
 let mediaRecorder = null;
@@ -27,6 +38,10 @@ let recordedChunks = [];
 let detectedSwings = [];
 let recordingStartTime = null;
 let isRecording = false;
+
+// Comparison state
+let selectedClips = [];
+let allClips = [];
 
 // Audio detection configuration
 const DETECTION_CONFIG = {
@@ -279,26 +294,50 @@ function displayClips(clipUrls, timestamps) {
 
     console.log('✅ Results section should now be visible');
 
-    // Clear previous clips
+    // Clear previous clips and selections
     clipsGrid.innerHTML = '';
+    selectedClips = [];
+    allClips = [];
+    updateSelectedCount();
 
     // Add each clip
     clipUrls.forEach((url, index) => {
-        const clipItem = document.createElement('div');
-        clipItem.className = 'clip-item';
-
         const timestamp = timestamps[index];
         const minutes = Math.floor(timestamp / 60);
         const seconds = (timestamp % 60).toFixed(1);
 
+        // Store clip data
+        const clipData = {
+            url: url,
+            index: index,
+            timestamp: timestamp,
+            label: `Swing ${index + 1}`
+        };
+        allClips.push(clipData);
+
+        // Create clip element
+        const clipItem = document.createElement('div');
+        clipItem.className = 'clip-item';
+        clipItem.dataset.clipIndex = index;
+
         clipItem.innerHTML = `
-            <h4>Swing ${index + 1}</h4>
+            <div class="clip-header">
+                <label class="clip-select">
+                    <input type="checkbox" class="clip-checkbox" data-index="${index}">
+                    <span class="checkbox-label">Select</span>
+                </label>
+                <h4>Swing ${index + 1}</h4>
+            </div>
             <video controls loop>
                 <source src="${url}" type="video/mp4">
                 Your browser does not support video playback.
             </video>
             <p class="clip-time">Detected at ${minutes}:${seconds.padStart(4, '0')}</p>
         `;
+
+        // Add checkbox event listener
+        const checkbox = clipItem.querySelector('.clip-checkbox');
+        checkbox.addEventListener('change', handleClipSelection);
 
         clipsGrid.appendChild(clipItem);
         console.log(`✅ Added clip ${index + 1}: ${url}`);
@@ -340,6 +379,7 @@ function showStatus(message, type = 'info') {
 function startNewSession() {
     // Reset UI
     resultsSection.style.display = 'none';
+    comparisonSection.style.display = 'none';
     recordingSection.style.display = 'block';
     swingsList.style.display = 'none';
     swingTimestamps.innerHTML = '';
@@ -348,15 +388,128 @@ function startNewSession() {
     // Reset state
     detectedSwings = [];
     recordedChunks = [];
+    selectedClips = [];
+    allClips = [];
     updateSwingCount();
 
     showStatus('Ready to record! Press "Start Recording" when ready.', 'info');
+}
+
+/**
+ * Handle clip selection checkbox change
+ */
+function handleClipSelection(event) {
+    const index = parseInt(event.target.dataset.index);
+    const isChecked = event.target.checked;
+
+    if (isChecked) {
+        selectedClips.push(allClips[index]);
+    } else {
+        selectedClips = selectedClips.filter(clip => clip.index !== index);
+    }
+
+    updateSelectedCount();
+}
+
+/**
+ * Update selected count display and button state
+ */
+function updateSelectedCount() {
+    selectedCountSpan.textContent = selectedClips.length;
+    compareBtn.disabled = selectedClips.length < 2;
+}
+
+/**
+ * Show comparison view with selected clips
+ */
+function showComparison() {
+    if (selectedClips.length < 2) return;
+
+    // Hide results, show comparison
+    resultsSection.style.display = 'none';
+    comparisonSection.style.display = 'block';
+
+    // Clear comparison grid
+    comparisonGrid.innerHTML = '';
+
+    // Add selected clips to comparison view
+    selectedClips.forEach(clip => {
+        const compareItem = document.createElement('div');
+        compareItem.className = 'compare-item';
+
+        compareItem.innerHTML = `
+            <h4>${clip.label}</h4>
+            <video class="compare-video" loop>
+                <source src="${clip.url}" type="video/mp4">
+                Your browser does not support video playback.
+            </video>
+        `;
+
+        comparisonGrid.appendChild(compareItem);
+    });
+
+    console.log(`🎬 Comparison view with ${selectedClips.length} clips`);
+}
+
+/**
+ * Play all comparison videos simultaneously
+ */
+function playAll() {
+    const videos = comparisonGrid.querySelectorAll('.compare-video');
+    videos.forEach(video => video.play());
+}
+
+/**
+ * Pause all comparison videos
+ */
+function pauseAll() {
+    const videos = comparisonGrid.querySelectorAll('.compare-video');
+    videos.forEach(video => video.pause());
+}
+
+/**
+ * Restart all comparison videos
+ */
+function restartAll() {
+    const videos = comparisonGrid.querySelectorAll('.compare-video');
+    videos.forEach(video => {
+        video.currentTime = 0;
+        video.play();
+    });
+}
+
+/**
+ * Update playback speed for all comparison videos
+ */
+function updatePlaybackSpeed() {
+    const speed = parseFloat(playbackSpeedSelect.value);
+    const videos = comparisonGrid.querySelectorAll('.compare-video');
+    videos.forEach(video => {
+        video.playbackRate = speed;
+    });
+    console.log(`⚡ Playback speed set to ${speed}x`);
+}
+
+/**
+ * Go back to clips view from comparison
+ */
+function backToClips() {
+    comparisonSection.style.display = 'none';
+    resultsSection.style.display = 'block';
 }
 
 // Event Listeners
 startBtn.addEventListener('click', startRecording);
 stopBtn.addEventListener('click', stopRecording);
 newSessionBtn.addEventListener('click', startNewSession);
+
+// Comparison event listeners
+compareBtn.addEventListener('click', showComparison);
+playAllBtn.addEventListener('click', playAll);
+pauseAllBtn.addEventListener('click', pauseAll);
+restartAllBtn.addEventListener('click', restartAll);
+playbackSpeedSelect.addEventListener('change', updatePlaybackSpeed);
+backToClipsBtn.addEventListener('click', backToClips);
 
 // Initialize on page load
 window.addEventListener('load', init);
