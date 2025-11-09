@@ -67,21 +67,33 @@ async def process_video(
         JSON with list of clip URLs
     """
     try:
+        print(f"\n🎬 Starting video processing...")
+        print(f"📦 Video file: {video.filename}, size: {video.size if hasattr(video, 'size') else 'unknown'}")
+
         # Parse timestamps
         timestamp_list = json.loads(timestamps)
+        print(f"⏱️  Timestamps: {timestamp_list}")
+
         if not isinstance(timestamp_list, list):
             raise ValueError("Timestamps must be a list")
 
+        if len(timestamp_list) == 0:
+            raise ValueError("No timestamps provided")
+
         # Generate unique session ID
         session_id = str(uuid.uuid4())
+        print(f"🆔 Session ID: {session_id}")
 
         # Save uploaded video
         video_filename = f"{session_id}_full.webm"
         video_path = UPLOADS_DIR / video_filename
 
+        print(f"💾 Saving video to: {video_path}")
         with open(video_path, "wb") as f:
             content = await video.read()
             f.write(content)
+
+        print(f"✅ Video saved: {len(content)} bytes")
 
         # Create clips for each timestamp
         clip_urls = []
@@ -94,6 +106,9 @@ async def process_video(
             clip_filename = f"{session_id}_swing_{idx}.mp4"
             clip_path = CLIPS_DIR / clip_filename
 
+            print(f"\n✂️  Creating clip {idx}/{len(timestamp_list)}")
+            print(f"   Timestamp: {timestamp}s, Start: {start_time}s, Duration: {duration}s")
+
             # Use FFmpeg to extract clip
             success = await create_clip(
                 str(video_path),
@@ -104,11 +119,14 @@ async def process_video(
 
             if success:
                 clip_urls.append(f"/api/clips/{clip_filename}")
+                print(f"   ✅ Clip created: {clip_filename}")
             else:
-                print(f"Warning: Failed to create clip {idx}")
+                print(f"   ❌ Failed to create clip {idx}")
 
         # Clean up uploaded video (optional - comment out if you want to keep originals)
         # video_path.unlink()
+
+        print(f"\n🎉 Processing complete! Created {len(clip_urls)} clips")
 
         return JSONResponse({
             "success": True,
@@ -116,10 +134,13 @@ async def process_video(
             "session_id": session_id
         })
 
-    except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid timestamps format")
+    except json.JSONDecodeError as e:
+        print(f"❌ JSON decode error: {e}")
+        raise HTTPException(status_code=400, detail=f"Invalid timestamps format: {e}")
     except Exception as e:
-        print(f"Error processing video: {e}")
+        print(f"❌ Error processing video: {e}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -156,6 +177,8 @@ async def create_clip(input_path: str, output_path: str, start_time: float, dura
             output_path
         ]
 
+        print(f"   🎬 Running FFmpeg: {' '.join(cmd)}")
+
         result = subprocess.run(
             cmd,
             capture_output=True,
@@ -163,13 +186,27 @@ async def create_clip(input_path: str, output_path: str, start_time: float, dura
             timeout=30
         )
 
-        return result.returncode == 0
+        if result.returncode == 0:
+            # Check if file was created
+            if Path(output_path).exists():
+                file_size = Path(output_path).stat().st_size
+                print(f"   ✅ FFmpeg success! Output: {file_size} bytes")
+                return True
+            else:
+                print(f"   ❌ FFmpeg returned 0 but file doesn't exist!")
+                return False
+        else:
+            print(f"   ❌ FFmpeg failed with code {result.returncode}")
+            print(f"   stderr: {result.stderr[:500]}")  # First 500 chars of error
+            return False
 
     except subprocess.TimeoutExpired:
-        print(f"FFmpeg timeout for clip at {start_time}s")
+        print(f"   ⏱️  FFmpeg timeout for clip at {start_time}s")
         return False
     except Exception as e:
-        print(f"FFmpeg error: {e}")
+        print(f"   ❌ FFmpeg error: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 

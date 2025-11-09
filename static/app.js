@@ -30,8 +30,8 @@ let isRecording = false;
 
 // Audio detection configuration
 const DETECTION_CONFIG = {
-    threshold: 0.3,        // Volume threshold (0-1, adjust based on testing)
-    cooldown: 1000,        // Minimum ms between detections
+    threshold: 0.15,       // Volume threshold (0-1) - VERY SENSITIVE
+    cooldown: 800,         // Minimum ms between detections
     smoothing: 0.8,        // Audio analyzer smoothing
     fftSize: 2048          // FFT size for frequency analysis
 };
@@ -220,10 +220,17 @@ async function handleRecordingStop() {
  */
 async function uploadAndProcess(videoBlob, timestamps) {
     try {
+        console.log('🎬 Starting upload...', {
+            blobSize: videoBlob.size,
+            timestamps: timestamps
+        });
+
         // Create form data
         const formData = new FormData();
         formData.append('video', videoBlob, 'recording.webm');
         formData.append('timestamps', JSON.stringify(timestamps));
+
+        console.log('📤 Uploading to /api/process...');
 
         // Upload to server
         const response = await fetch('/api/process', {
@@ -231,20 +238,26 @@ async function uploadAndProcess(videoBlob, timestamps) {
             body: formData
         });
 
+        console.log('📥 Server response:', response.status, response.statusText);
+
         if (!response.ok) {
-            throw new Error(`Server error: ${response.status}`);
+            const errorText = await response.text();
+            console.error('❌ Server error response:', errorText);
+            throw new Error(`Server error: ${response.status} - ${errorText}`);
         }
 
         const result = await response.json();
+        console.log('✅ Processing result:', result);
 
-        if (result.success) {
+        if (result.success && result.clips && result.clips.length > 0) {
+            console.log(`🎥 Got ${result.clips.length} clips, displaying...`);
             displayClips(result.clips, timestamps);
         } else {
-            throw new Error('Processing failed');
+            throw new Error(`Processing failed - no clips returned. Result: ${JSON.stringify(result)}`);
         }
 
     } catch (error) {
-        console.error('Upload error:', error);
+        console.error('❌ Upload error:', error);
         processingSection.style.display = 'none';
         recordingSection.style.display = 'block';
         showStatus(`Error processing video: ${error.message}`, 'error');
@@ -255,9 +268,16 @@ async function uploadAndProcess(videoBlob, timestamps) {
  * Display processed clips
  */
 function displayClips(clipUrls, timestamps) {
+    console.log('🎬 Displaying clips...', {
+        clipCount: clipUrls.length,
+        clipUrls: clipUrls
+    });
+
     // Hide processing, show results
     processingSection.style.display = 'none';
     resultsSection.style.display = 'block';
+
+    console.log('✅ Results section should now be visible');
 
     // Clear previous clips
     clipsGrid.innerHTML = '';
@@ -281,7 +301,10 @@ function displayClips(clipUrls, timestamps) {
         `;
 
         clipsGrid.appendChild(clipItem);
+        console.log(`✅ Added clip ${index + 1}: ${url}`);
     });
+
+    console.log('🎉 All clips displayed!');
 }
 
 /**
