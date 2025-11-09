@@ -60,7 +60,31 @@ A simple web application for recording and analyzing swing videos. Record your s
 ### Prerequisites
 
 - Python 3.11+
-- FFmpeg installed
+- FFmpeg installed (required for video processing)
+
+### Installing FFmpeg
+
+**macOS:**
+```bash
+brew install ffmpeg
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
+
+**Windows:**
+Download from [ffmpeg.org](https://ffmpeg.org/download.html) or use Chocolatey:
+```bash
+choco install ffmpeg
+```
+
+**Verify installation:**
+```bash
+ffmpeg -version
+```
 
 ### Setup
 
@@ -76,6 +100,8 @@ python main.py
 ```
 
 Visit `http://localhost:8000` in your browser.
+
+**Important:** Make sure FFmpeg is installed and available in your PATH, otherwise video processing will fail!
 
 ## Technical Stack
 

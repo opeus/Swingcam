@@ -128,6 +128,13 @@ async def process_video(
 
         print(f"\n🎉 Processing complete! Created {len(clip_urls)} clips")
 
+        # If no clips were created, return an error
+        if len(clip_urls) == 0:
+            raise HTTPException(
+                status_code=500,
+                detail="FFmpeg failed to create clips. Check server logs for details. Make sure FFmpeg is installed."
+            )
+
         return JSONResponse({
             "success": True,
             "clips": clip_urls,
@@ -158,32 +165,40 @@ async def create_clip(input_path: str, output_path: str, start_time: float, dura
         True if successful, False otherwise
     """
     try:
+        # Check if FFmpeg is available
+        try:
+            subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=10)
+        except FileNotFoundError:
+            print(f"   ❌ FFmpeg not found! Please install FFmpeg to use video processing.")
+            return False
+        except Exception as e:
+            print(f"   ⚠️  FFmpeg check warning: {e}")
+
         # FFmpeg command to extract clip
-        # -ss: start time
-        # -t: duration
-        # -i: input file
-        # -c:v libx264: encode with H.264
-        # -c:a aac: encode audio with AAC
-        # -y: overwrite output file
+        # Using -avoid_negative_ts make_zero to handle WebM timing issues
+        # Using -fflags +genpts to regenerate timestamps
         cmd = [
             "ffmpeg",
             "-ss", str(start_time),
             "-i", input_path,
             "-t", str(duration),
             "-c:v", "libx264",
-            "-c:a", "aac",
-            "-preset", "fast",
+            "-preset", "ultrafast",  # Faster encoding
+            "-crf", "23",  # Quality setting
+            "-avoid_negative_ts", "make_zero",  # Fix WebM timing issues
+            "-fflags", "+genpts",  # Regenerate presentation timestamps
             "-y",
             output_path
         ]
 
+        # Try with audio first
         print(f"   🎬 Running FFmpeg: {' '.join(cmd)}")
 
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            timeout=30
+            timeout=60  # Increased timeout for reliability
         )
 
         if result.returncode == 0:
@@ -196,9 +211,42 @@ async def create_clip(input_path: str, output_path: str, start_time: float, dura
                 print(f"   ❌ FFmpeg returned 0 but file doesn't exist!")
                 return False
         else:
-            print(f"   ❌ FFmpeg failed with code {result.returncode}")
-            print(f"   stderr: {result.stderr[:500]}")  # First 500 chars of error
-            return False
+            # If it failed, try without audio (some WebM files might not have audio track)
+            print(f"   ⚠️  FFmpeg failed with code {result.returncode}, trying without audio...")
+            print(f"   stderr: {result.stderr[:300]}")
+
+            cmd_no_audio = [
+                "ffmpeg",
+                "-ss", str(start_time),
+                "-i", input_path,
+                "-t", str(duration),
+                "-c:v", "libx264",
+                "-preset", "ultrafast",
+                "-crf", "23",
+                "-an",  # No audio
+                "-avoid_negative_ts", "make_zero",
+                "-fflags", "+genpts",
+                "-y",
+                output_path
+            ]
+
+            print(f"   🔁 Retry without audio: {' '.join(cmd_no_audio)}")
+
+            result2 = subprocess.run(
+                cmd_no_audio,
+                capture_output=True,
+                text=True,
+                timeout=60  # Increased timeout for reliability
+            )
+
+            if result2.returncode == 0 and Path(output_path).exists():
+                file_size = Path(output_path).stat().st_size
+                print(f"   ✅ FFmpeg success (no audio)! Output: {file_size} bytes")
+                return True
+            else:
+                print(f"   ❌ FFmpeg failed again with code {result2.returncode}")
+                print(f"   stderr: {result2.stderr[:500]}")
+                return False
 
     except subprocess.TimeoutExpired:
         print(f"   ⏱️  FFmpeg timeout for clip at {start_time}s")
