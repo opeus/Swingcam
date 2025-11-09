@@ -474,7 +474,7 @@ function showClipSelection(mode) {
     requiredCountSpan.textContent = requiredCount;
     comparisonTypeLabel.textContent = modeLabel;
 
-    // Populate clips grid with checkboxes
+    // Populate clips grid with checkboxes and thumbnails
     selectionClipsGrid.innerHTML = '';
     allClips.forEach((clipData, index) => {
         const timestamp = clipData.timestamp;
@@ -482,26 +482,46 @@ function showClipSelection(mode) {
         const seconds = (timestamp % 60).toFixed(1);
 
         const clipItem = document.createElement('div');
-        clipItem.className = 'clip-item';
+        clipItem.className = 'clip-item selectable';
+        clipItem.dataset.index = index;
+
+        // Generate thumbnail URL
+        const thumbnailUrl = clipData.url.replace('.mp4', '_thumb.jpg');
 
         clipItem.innerHTML = `
-            <div class="clip-header">
-                <label class="clip-select">
+            <div class="clip-thumbnail">
+                <img src="${thumbnailUrl}" alt="${clipData.label}" loading="lazy">
+                <div class="selection-checkbox">
                     <input type="checkbox" class="clip-checkbox" data-index="${index}">
-                    <span class="checkbox-label">Select</span>
-                </label>
-                <h4>${clipData.label}</h4>
+                </div>
             </div>
-            <video controls loop playsinline>
-                <source src="${clipData.url}" type="video/mp4">
-                Your browser does not support video playback.
-            </video>
-            <p class="clip-time">Detected at ${minutes}:${seconds.padStart(4, '0')}</p>
+            <div class="clip-info">
+                <h4>${clipData.label}</h4>
+                <p class="clip-time">${minutes}:${seconds.padStart(4, '0')}</p>
+            </div>
         `;
 
         // Add checkbox event listener
         const checkbox = clipItem.querySelector('.clip-checkbox');
-        checkbox.addEventListener('change', handleClipSelection);
+        checkbox.addEventListener('change', (e) => {
+            handleClipSelection(e);
+            // Toggle visual selection state
+            if (e.target.checked) {
+                clipItem.classList.add('selected');
+            } else {
+                clipItem.classList.remove('selected');
+            }
+        });
+
+        // Make entire item clickable to toggle checkbox
+        const thumbnail = clipItem.querySelector('.clip-thumbnail');
+        thumbnail.addEventListener('click', (e) => {
+            // Don't trigger if clicking directly on checkbox
+            if (e.target !== checkbox) {
+                checkbox.checked = !checkbox.checked;
+                checkbox.dispatchEvent(new Event('change'));
+            }
+        });
 
         selectionClipsGrid.appendChild(clipItem);
     });

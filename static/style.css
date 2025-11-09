@@ -416,35 +416,42 @@ header h1 {
 }
 
 /* Clip Selection */
-.clip-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
-}
-
-.clip-select {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+.clip-item.selectable {
     cursor: pointer;
-    font-size: 0.875rem;
-    color: var(--text-secondary);
 }
 
-.clip-select input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
+.clip-item.selectable.selected {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.selection-checkbox {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 10;
+}
+
+.selection-checkbox input[type="checkbox"] {
+    width: 24px;
+    height: 24px;
     cursor: pointer;
     accent-color: var(--primary-color);
+    background: white;
+    border: 2px solid white;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
-.clip-select:hover {
-    color: var(--primary-color);
-}
-
-.clip-header h4 {
-    margin: 0;
+.clip-item.selected .clip-thumbnail::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(37, 99, 235, 0.15);
+    pointer-events: none;
 }
 
 /* Section Subtitle */
