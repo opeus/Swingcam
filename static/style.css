@@ -414,6 +414,9 @@ header h1 {
     width: 100%;
     border-radius: 0.25rem;
     background: #000;
+    pointer-events: none; /* Prevent individual video interaction */
+    -webkit-user-select: none; /* Prevent text selection on iOS */
+    user-select: none;
 }
 
 /* Instructions */

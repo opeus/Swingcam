@@ -45,9 +45,9 @@ let allClips = [];
 
 // Audio detection configuration
 const DETECTION_CONFIG = {
-    threshold: 0.15,       // Volume threshold (0-1) - VERY SENSITIVE
-    cooldown: 800,         // Minimum ms between detections
-    smoothing: 0.8,        // Audio analyzer smoothing
+    threshold: 0.05,       // Volume threshold (0-1) - MAXIMUM SENSITIVITY
+    cooldown: 600,         // Minimum ms between detections
+    smoothing: 0.7,        // Audio analyzer smoothing (lower = more responsive)
     fftSize: 2048          // FFT size for frequency analysis
 };
 
@@ -439,7 +439,7 @@ function showComparison() {
 
         compareItem.innerHTML = `
             <h4>${clip.label}</h4>
-            <video class="compare-video" loop playsinline webkit-playsinline>
+            <video class="compare-video" loop playsinline webkit-playsinline preload="auto">
                 <source src="${clip.url}" type="video/mp4">
                 Your browser does not support video playback.
             </video>
@@ -448,7 +448,15 @@ function showComparison() {
         comparisonGrid.appendChild(compareItem);
     });
 
-    console.log(`🎬 Comparison view with ${selectedClips.length} clips`);
+    // Initialize all videos
+    const videos = comparisonGrid.querySelectorAll('.compare-video');
+    videos.forEach(video => {
+        video.load(); // Ensure videos are loaded
+        video.currentTime = 0; // Start at beginning
+        video.pause(); // Make sure all start paused
+    });
+
+    console.log(`🎬 Comparison view with ${selectedClips.length} clips ready`);
 }
 
 /**
@@ -456,7 +464,27 @@ function showComparison() {
  */
 function playAll() {
     const videos = comparisonGrid.querySelectorAll('.compare-video');
-    videos.forEach(video => video.play());
+
+    // Pause all first
+    videos.forEach(video => video.pause());
+
+    // Reset all to start for perfect sync
+    videos.forEach(video => {
+        video.currentTime = 0;
+    });
+
+    // Use requestAnimationFrame to ensure videos start at the same time
+    requestAnimationFrame(() => {
+        const playPromises = [];
+        videos.forEach(video => {
+            playPromises.push(video.play().catch(err => console.log('Play prevented:', err)));
+        });
+
+        // Wait for all to start playing
+        Promise.all(playPromises).then(() => {
+            console.log(`▶️ Playing ${videos.length} videos in sync`);
+        });
+    });
 }
 
 /**
@@ -465,6 +493,7 @@ function playAll() {
 function pauseAll() {
     const videos = comparisonGrid.querySelectorAll('.compare-video');
     videos.forEach(video => video.pause());
+    console.log(`⏸️ Paused ${videos.length} videos`);
 }
 
 /**
@@ -472,10 +501,18 @@ function pauseAll() {
  */
 function restartAll() {
     const videos = comparisonGrid.querySelectorAll('.compare-video');
+
+    // Reset time first
     videos.forEach(video => {
         video.currentTime = 0;
-        video.play();
     });
+
+    // Then play all
+    videos.forEach(video => {
+        video.play().catch(err => console.log('Play prevented:', err));
+    });
+
+    console.log(`⏮️ Restarted ${videos.length} videos`);
 }
 
 /**
