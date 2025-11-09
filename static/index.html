@@ -64,51 +64,63 @@
                     <!-- Clips will be inserted here dynamically -->
                 </div>
 
-                <div class="controls">
-                    <button id="compare-btn" class="btn btn-primary" disabled>
-                        <span class="icon">⚡</span> Compare Selected (<span id="selected-count">0</span>)
+                <h3 class="section-subtitle">Step 3: Choose What To Do</h3>
+                <p class="mode-description">Select how you want to analyze your swings</p>
+
+                <div class="comparison-modes">
+                    <button id="sidebyside-mode-btn" class="mode-btn">
+                        <span class="mode-icon">📊</span>
+                        <h4>Side by Side</h4>
+                        <p>View 2-3 swings next to each other</p>
                     </button>
+
+                    <button id="overlay-mode-btn" class="mode-btn">
+                        <span class="mode-icon">🎭</span>
+                        <h4>Overlay</h4>
+                        <p>2 swings overlaid (50% transparency)</p>
+                    </button>
+
+                    <button id="position-mode-btn" class="mode-btn">
+                        <span class="mode-icon">📸</span>
+                        <h4>Position Compare</h4>
+                        <p>10 still frames side-by-side</p>
+                    </button>
+                </div>
+
+                <div class="controls">
                     <button id="new-session-btn" class="btn btn-secondary">
                         <span class="icon">🔄</span> Record New Session
                     </button>
                 </div>
             </section>
 
-            <!-- Comparison Mode Selection -->
-            <section id="comparison-mode-section" class="card" style="display: none;">
-                <h2>Choose Comparison Mode</h2>
-                <p class="mode-description">Select how you want to compare your swings</p>
+            <!-- Clip Selection Section -->
+            <section id="clip-selection-section" class="card" style="display: none;">
+                <h2>Step 4: Select Clips</h2>
+                <div class="selection-instructions">
+                    <p id="selection-instruction-text">Select clips for comparison</p>
+                    <p class="selection-status">
+                        Selected: <span id="selected-count">0</span> / <span id="required-count">2</span>
+                    </p>
+                </div>
 
-                <div class="comparison-modes">
-                    <button id="sidebyside-mode-btn" class="mode-btn">
-                        <span class="mode-icon">📊</span>
-                        <h3>Side by Side</h3>
-                        <p>View 2-3 swings next to each other</p>
-                    </button>
-
-                    <button id="overlay-mode-btn" class="mode-btn">
-                        <span class="mode-icon">🎭</span>
-                        <h3>Overlay</h3>
-                        <p>2 swings overlaid (50% transparency)</p>
-                    </button>
-
-                    <button id="position-mode-btn" class="mode-btn">
-                        <span class="mode-icon">📸</span>
-                        <h3>Position Compare</h3>
-                        <p>10 still frames side-by-side</p>
-                    </button>
+                <div class="clips-grid" id="selection-clips-grid">
+                    <!-- Clips with checkboxes will be inserted here -->
                 </div>
 
                 <div class="controls">
-                    <button id="back-from-mode-btn" class="btn btn-secondary">
-                        <span class="icon">←</span> Back to Clips
+                    <button id="create-comparison-btn" class="btn btn-primary" disabled>
+                        <span class="icon">✨</span> Create <span id="comparison-type-label">Comparison</span>
+                    </button>
+                    <button id="back-to-results-btn" class="btn btn-secondary">
+                        <span class="icon">←</span> Back
                     </button>
                 </div>
             </section>
 
             <!-- Comparison Section -->
             <section id="comparison-section" class="card" style="display: none;">
-                <h2>Compare Swings Side-by-Side</h2>
+                <h2 id="comparison-title">Step 5: Results</h2>
 
                 <div class="comparison-grid" id="comparison-grid">
                     <!-- Combined comparison video will be shown here -->
@@ -117,6 +129,9 @@
                 <p class="comparison-note">Use the video controls to play, pause, and adjust speed. The video shows your selected swings side-by-side in perfect sync.</p>
 
                 <div class="controls">
+                    <button id="download-result-btn" class="btn btn-primary" style="display: none;">
+                        <span class="icon">⬇️</span> Download
+                    </button>
                     <button id="back-to-clips-btn" class="btn btn-secondary">
                         <span class="icon">←</span> Back to All Clips
                     </button>
@@ -127,11 +142,13 @@
             <section class="card instructions">
                 <h3>How to Use</h3>
                 <ol>
-                    <li><strong>Start Recording:</strong> Click the "Start Recording" button and grant camera/microphone permissions</li>
-                    <li><strong>Take Your Swings:</strong> The app will automatically detect the impact sound ("wack!") of each swing</li>
-                    <li><strong>Stop Recording:</strong> Click "Stop Recording" when you're done</li>
-                    <li><strong>Review Clips:</strong> Each swing will be automatically clipped and ready to review</li>
-                    <li><strong>Compare:</strong> Select 2 or more clips and click "Compare Selected" to watch them side-by-side with synchronized playback</li>
+                    <li><strong>Record Video:</strong> Click "Start Recording" and grant camera/microphone permissions</li>
+                    <li><strong>Take Your Swings:</strong> The app automatically detects the impact sound of each swing</li>
+                    <li><strong>Stop Recording:</strong> Click "Stop Recording" when done</li>
+                    <li><strong>Review Clips:</strong> Watch individual clips (2 seconds each: 1s before/after impact)</li>
+                    <li><strong>Choose Analysis Mode:</strong> Select Side-by-Side, Overlay, or Position Compare</li>
+                    <li><strong>Select Clips:</strong> Pick the appropriate number of clips for your chosen mode</li>
+                    <li><strong>View or Download:</strong> Analyze your results and download if needed</li>
                 </ol>
 
                 <div class="tips">
@@ -140,7 +157,7 @@
                         <li>Make sure your device's microphone can clearly hear the swing impact</li>
                         <li>Position the camera so your full swing is visible</li>
                         <li>Take 3-5 swings per session for easy comparison</li>
-                        <li>Wait a second or two between swings for cleaner detection</li>
+                        <li>Wait a second between swings for cleaner detection</li>
                     </ul>
                 </div>
             </section>

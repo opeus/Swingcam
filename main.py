@@ -99,9 +99,9 @@ async def process_video(
         clip_urls = []
 
         for idx, timestamp in enumerate(timestamp_list, 1):
-            # Create clip: 2 seconds before, 3 seconds after (5 seconds total)
-            start_time = max(0, timestamp - 2)  # Don't go below 0
-            duration = 5
+            # Create clip: 1 second before, 1 second after (2 seconds total)
+            start_time = max(0, timestamp - 1)  # Don't go below 0
+            duration = 2
 
             clip_filename = f"{session_id}_swing_{idx}.mp4"
             clip_path = CLIPS_DIR / clip_filename

@@ -347,11 +347,21 @@ header h1 {
     margin: 0;
 }
 
+/* Section Subtitle */
+.section-subtitle {
+    font-size: 1.25rem;
+    margin-top: 2rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+    text-align: center;
+}
+
 /* Comparison Mode Selection */
 .mode-description {
     text-align: center;
     color: var(--text-secondary);
     margin-bottom: 2rem;
+    font-size: 1rem;
 }
 
 .comparison-modes {
@@ -389,10 +399,44 @@ header h1 {
     color: var(--text-primary);
 }
 
+.mode-btn h4 {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
 .mode-btn p {
     font-size: 0.9rem;
     color: var(--text-secondary);
     margin: 0;
+}
+
+/* Clip Selection Instructions */
+.selection-instructions {
+    text-align: center;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: var(--background);
+    border-radius: 0.5rem;
+    border: 2px solid var(--primary-color);
+}
+
+#selection-instruction-text {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+}
+
+.selection-status {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--primary-color);
+    margin: 0;
+}
+
+.selection-status span {
+    color: var(--primary-color);
 }
 
 /* Comparison Section */

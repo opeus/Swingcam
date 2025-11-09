@@ -19,13 +19,19 @@ const clipsGrid = document.getElementById('clips-grid');
 const newSessionBtn = document.getElementById('new-session-btn');
 
 // Comparison elements
-const compareBtn = document.getElementById('compare-btn');
 const selectedCountSpan = document.getElementById('selected-count');
-const comparisonModeSection = document.getElementById('comparison-mode-section');
+const clipSelectionSection = document.getElementById('clip-selection-section');
+const selectionClipsGrid = document.getElementById('selection-clips-grid');
+const selectionInstructionText = document.getElementById('selection-instruction-text');
+const requiredCountSpan = document.getElementById('required-count');
+const createComparisonBtn = document.getElementById('create-comparison-btn');
+const comparisonTypeLabel = document.getElementById('comparison-type-label');
+const backToResultsBtn = document.getElementById('back-to-results-btn');
 const comparisonSection = document.getElementById('comparison-section');
 const comparisonGrid = document.getElementById('comparison-grid');
+const comparisonTitle = document.getElementById('comparison-title');
 const backToClipsBtn = document.getElementById('back-to-clips-btn');
-const backFromModeBtn = document.getElementById('back-from-mode-btn');
+const downloadResultBtn = document.getElementById('download-result-btn');
 const sideBySideModeBtn = document.getElementById('sidebyside-mode-btn');
 const overlayModeBtn = document.getElementById('overlay-mode-btn');
 const positionModeBtn = document.getElementById('position-mode-btn');
@@ -43,6 +49,8 @@ let isRecording = false;
 // Comparison state
 let selectedClips = [];
 let allClips = [];
+let currentMode = null; // 'sidebyside', 'overlay', or 'position'
+let currentComparisonUrl = null; // For downloads
 
 // Audio detection configuration
 const DETECTION_CONFIG = {
@@ -281,7 +289,7 @@ async function uploadAndProcess(videoBlob, timestamps) {
 }
 
 /**
- * Display processed clips
+ * Display processed clips (preview only, no selection)
  */
 function displayClips(clipUrls, timestamps) {
     console.log('🎬 Displaying clips...', {
@@ -299,9 +307,8 @@ function displayClips(clipUrls, timestamps) {
     clipsGrid.innerHTML = '';
     selectedClips = [];
     allClips = [];
-    updateSelectedCount();
 
-    // Add each clip
+    // Add each clip (preview only, no checkboxes)
     clipUrls.forEach((url, index) => {
         const timestamp = timestamps[index];
         const minutes = Math.floor(timestamp / 60);
@@ -316,29 +323,19 @@ function displayClips(clipUrls, timestamps) {
         };
         allClips.push(clipData);
 
-        // Create clip element
+        // Create clip element (NO checkboxes - just preview)
         const clipItem = document.createElement('div');
         clipItem.className = 'clip-item';
         clipItem.dataset.clipIndex = index;
 
         clipItem.innerHTML = `
-            <div class="clip-header">
-                <label class="clip-select">
-                    <input type="checkbox" class="clip-checkbox" data-index="${index}">
-                    <span class="checkbox-label">Select</span>
-                </label>
-                <h4>Swing ${index + 1}</h4>
-            </div>
+            <h4>Swing ${index + 1}</h4>
             <video controls loop playsinline>
                 <source src="${url}" type="video/mp4">
                 Your browser does not support video playback.
             </video>
             <p class="clip-time">Detected at ${minutes}:${seconds.padStart(4, '0')}</p>
         `;
-
-        // Add checkbox event listener
-        const checkbox = clipItem.querySelector('.clip-checkbox');
-        checkbox.addEventListener('change', handleClipSelection);
 
         clipsGrid.appendChild(clipItem);
         console.log(`✅ Added clip ${index + 1}: ${url}`);
@@ -381,7 +378,7 @@ function startNewSession() {
     // Reset UI
     resultsSection.style.display = 'none';
     comparisonSection.style.display = 'none';
-    comparisonModeSection.style.display = 'none';
+    clipSelectionSection.style.display = 'none';
     recordingSection.style.display = 'block';
     swingsList.style.display = 'none';
     swingTimestamps.innerHTML = '';
@@ -392,9 +389,84 @@ function startNewSession() {
     recordedChunks = [];
     selectedClips = [];
     allClips = [];
+    currentMode = null;
+    currentComparisonUrl = null;
     updateSwingCount();
 
     showStatus('Ready to record! Press "Start Recording" when ready.', 'info');
+}
+
+/**
+ * Show clip selection screen for a specific comparison mode
+ */
+function showClipSelection(mode) {
+    currentMode = mode;
+    selectedClips = [];
+
+    // Hide results, show selection
+    resultsSection.style.display = 'none';
+    clipSelectionSection.style.display = 'block';
+
+    // Configure UI based on mode
+    let instructions = '';
+    let requiredCount = 2;
+    let modeLabel = '';
+
+    switch (mode) {
+        case 'sidebyside':
+            instructions = 'Select 2-3 swing clips to view side-by-side';
+            requiredCount = '2-3';
+            modeLabel = 'Side-by-Side';
+            break;
+        case 'overlay':
+            instructions = 'Select exactly 2 swing clips to overlay';
+            requiredCount = '2';
+            modeLabel = 'Overlay';
+            break;
+        case 'position':
+            instructions = 'Select exactly 2 swing clips to compare positions';
+            requiredCount = '2';
+            modeLabel = 'Position Compare';
+            break;
+    }
+
+    selectionInstructionText.textContent = instructions;
+    requiredCountSpan.textContent = requiredCount;
+    comparisonTypeLabel.textContent = modeLabel;
+
+    // Populate clips grid with checkboxes
+    selectionClipsGrid.innerHTML = '';
+    allClips.forEach((clipData, index) => {
+        const timestamp = clipData.timestamp;
+        const minutes = Math.floor(timestamp / 60);
+        const seconds = (timestamp % 60).toFixed(1);
+
+        const clipItem = document.createElement('div');
+        clipItem.className = 'clip-item';
+
+        clipItem.innerHTML = `
+            <div class="clip-header">
+                <label class="clip-select">
+                    <input type="checkbox" class="clip-checkbox" data-index="${index}">
+                    <span class="checkbox-label">Select</span>
+                </label>
+                <h4>${clipData.label}</h4>
+            </div>
+            <video controls loop playsinline>
+                <source src="${clipData.url}" type="video/mp4">
+                Your browser does not support video playback.
+            </video>
+            <p class="clip-time">Detected at ${minutes}:${seconds.padStart(4, '0')}</p>
+        `;
+
+        // Add checkbox event listener
+        const checkbox = clipItem.querySelector('.clip-checkbox');
+        checkbox.addEventListener('change', handleClipSelection);
+
+        selectionClipsGrid.appendChild(clipItem);
+    });
+
+    updateSelectedCount();
 }
 
 /**
@@ -405,6 +477,17 @@ function handleClipSelection(event) {
     const isChecked = event.target.checked;
 
     if (isChecked) {
+        // Check if we've reached max for this mode
+        if (currentMode === 'sidebyside' && selectedClips.length >= 3) {
+            event.target.checked = false;
+            alert('Maximum 3 clips for Side-by-Side mode');
+            return;
+        } else if ((currentMode === 'overlay' || currentMode === 'position') && selectedClips.length >= 2) {
+            event.target.checked = false;
+            alert('Maximum 2 clips for this mode');
+            return;
+        }
+
         selectedClips.push(allClips[index]);
     } else {
         selectedClips = selectedClips.filter(clip => clip.index !== index);
@@ -418,44 +501,27 @@ function handleClipSelection(event) {
  */
 function updateSelectedCount() {
     selectedCountSpan.textContent = selectedClips.length;
-    compareBtn.disabled = selectedClips.length < 2;
+
+    // Enable button based on mode requirements
+    let canCreate = false;
+    if (currentMode === 'sidebyside') {
+        canCreate = selectedClips.length >= 2 && selectedClips.length <= 3;
+    } else if (currentMode === 'overlay' || currentMode === 'position') {
+        canCreate = selectedClips.length === 2;
+    }
+
+    createComparisonBtn.disabled = !canCreate;
 }
 
 /**
- * Show comparison mode selection
+ * Create comparison based on selected mode
  */
-function showComparisonModeSelection() {
-    if (selectedClips.length < 2) return;
-
-    // Update mode buttons based on selection count
-    if (selectedClips.length === 2) {
-        // All modes available for 2 clips
-        overlayModeBtn.disabled = false;
-        positionModeBtn.disabled = false;
-    } else if (selectedClips.length === 3) {
-        // Only side-by-side for 3 clips
-        overlayModeBtn.disabled = true;
-        positionModeBtn.disabled = true;
-    } else {
-        alert('Please select 2-3 clips for comparison');
+async function createComparison() {
+    if (!currentMode || selectedClips.length < 2) {
         return;
     }
 
-    // Show mode selection
-    resultsSection.style.display = 'none';
-    comparisonModeSection.style.display = 'block';
-}
-
-/**
- * Create side-by-side comparison
- */
-async function createSideBySideComparison() {
-    if (selectedClips.length < 2 || selectedClips.length > 3) {
-        alert('Please select 2-3 clips for side-by-side comparison');
-        return;
-    }
-
-    comparisonModeSection.style.display = 'none';
+    clipSelectionSection.style.display = 'none';
     processingSection.style.display = 'block';
 
     try {
@@ -467,7 +533,25 @@ async function createSideBySideComparison() {
         const formData = new FormData();
         formData.append('clips', JSON.stringify(clipFilenames));
 
-        const response = await fetch('/api/compare', {
+        let endpoint = '';
+        let title = '';
+
+        switch (currentMode) {
+            case 'sidebyside':
+                endpoint = '/api/compare';
+                title = 'Side-by-Side Comparison';
+                break;
+            case 'overlay':
+                endpoint = '/api/compare/overlay';
+                title = 'Overlay Comparison (50% Transparency)';
+                break;
+            case 'position':
+                endpoint = '/api/compare/position';
+                title = 'Position Comparison';
+                break;
+        }
+
+        const response = await fetch(endpoint, {
             method: 'POST',
             body: formData
         });
@@ -478,109 +562,27 @@ async function createSideBySideComparison() {
 
         const result = await response.json();
 
-        if (result.success && result.comparison_url) {
-            showVideoComparison(result.comparison_url, 'Side-by-Side Comparison');
+        if (currentMode === 'position') {
+            // Position comparison returns frames
+            if (result.success && result.frames) {
+                showPositionComparison(result.frames, title);
+            } else {
+                throw new Error('Failed to create position comparison');
+            }
         } else {
-            throw new Error('Failed to create comparison video');
+            // Video comparisons
+            if (result.success && result.comparison_url) {
+                showVideoComparison(result.comparison_url, title);
+            } else {
+                throw new Error('Failed to create comparison video');
+            }
         }
 
     } catch (error) {
         console.error('❌ Comparison error:', error);
         processingSection.style.display = 'none';
-        comparisonModeSection.style.display = 'block';
+        clipSelectionSection.style.display = 'block';
         alert(`Error creating comparison: ${error.message}`);
-    }
-}
-
-/**
- * Create overlay comparison
- */
-async function createOverlayComparison() {
-    if (selectedClips.length !== 2) {
-        alert('Please select exactly 2 clips for overlay comparison');
-        return;
-    }
-
-    comparisonModeSection.style.display = 'none';
-    processingSection.style.display = 'block';
-
-    try {
-        const clipFilenames = selectedClips.map(clip => {
-            const urlParts = clip.url.split('/');
-            return urlParts[urlParts.length - 1];
-        });
-
-        const formData = new FormData();
-        formData.append('clips', JSON.stringify(clipFilenames));
-
-        const response = await fetch('/api/compare/overlay', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            throw new Error(`Server error: ${response.status}`);
-        }
-
-        const result = await response.json();
-
-        if (result.success && result.comparison_url) {
-            showVideoComparison(result.comparison_url, 'Overlay Comparison (50% Transparency)');
-        } else {
-            throw new Error('Failed to create overlay video');
-        }
-
-    } catch (error) {
-        console.error('❌ Overlay error:', error);
-        processingSection.style.display = 'none';
-        comparisonModeSection.style.display = 'block';
-        alert(`Error creating overlay: ${error.message}`);
-    }
-}
-
-/**
- * Create position comparison
- */
-async function createPositionComparison() {
-    if (selectedClips.length !== 2) {
-        alert('Please select exactly 2 clips for position comparison');
-        return;
-    }
-
-    comparisonModeSection.style.display = 'none';
-    processingSection.style.display = 'block';
-
-    try {
-        const clipFilenames = selectedClips.map(clip => {
-            const urlParts = clip.url.split('/');
-            return urlParts[urlParts.length - 1];
-        });
-
-        const formData = new FormData();
-        formData.append('clips', JSON.stringify(clipFilenames));
-
-        const response = await fetch('/api/compare/position', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            throw new Error(`Server error: ${response.status}`);
-        }
-
-        const result = await response.json();
-
-        if (result.success && result.frames) {
-            showPositionComparison(result.frames);
-        } else {
-            throw new Error('Failed to create position comparison');
-        }
-
-    } catch (error) {
-        console.error('❌ Position comparison error:', error);
-        processingSection.style.display = 'none';
-        comparisonModeSection.style.display = 'block';
-        alert(`Error creating position comparison: ${error.message}`);
     }
 }
 
@@ -591,8 +593,11 @@ function showVideoComparison(videoUrl, title) {
     processingSection.style.display = 'none';
     comparisonSection.style.display = 'block';
 
+    // Store for downloads
+    currentComparisonUrl = videoUrl;
+
     // Update title
-    comparisonSection.querySelector('h2').textContent = title;
+    comparisonTitle.textContent = title;
 
     // Clear and add video
     comparisonGrid.innerHTML = '';
@@ -607,20 +612,28 @@ function showVideoComparison(videoUrl, title) {
     `;
 
     comparisonGrid.appendChild(compareItem);
+
+    // Show download button and comparison note
+    downloadResultBtn.style.display = 'inline-flex';
+    document.querySelector('.comparison-note').style.display = 'block';
 }
 
 /**
  * Show position comparison result
  */
-function showPositionComparison(frames) {
+function showPositionComparison(frames, title) {
     processingSection.style.display = 'none';
     comparisonSection.style.display = 'block';
 
-    // Update title
-    comparisonSection.querySelector('h2').textContent = 'Position Comparison';
+    // No download for position comparison (it's multiple images)
+    currentComparisonUrl = null;
 
-    // Hide the comparison note (for video controls)
-    comparisonSection.querySelector('.comparison-note').style.display = 'none';
+    // Update title
+    comparisonTitle.textContent = title;
+
+    // Hide the comparison note and download button
+    document.querySelector('.comparison-note').style.display = 'none';
+    downloadResultBtn.style.display = 'none';
 
     // Clear and add frames
     comparisonGrid.innerHTML = '';
@@ -649,24 +662,41 @@ function showPositionComparison(frames) {
 }
 
 /**
+ * Download the current comparison result
+ */
+function downloadResult() {
+    if (!currentComparisonUrl) return;
+
+    const link = document.createElement('a');
+    link.href = currentComparisonUrl;
+    link.download = `swingcam-${currentMode}-comparison.mp4`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+/**
  * Go back to clips view from comparison
  */
 function backToClips() {
     comparisonSection.style.display = 'none';
-    comparisonModeSection.style.display = 'none';
     resultsSection.style.display = 'block';
 
-    // Reset comparison note visibility
-    const note = comparisonSection.querySelector('.comparison-note');
-    if (note) note.style.display = 'block';
+    // Reset for next comparison
+    currentMode = null;
+    currentComparisonUrl = null;
 }
 
 /**
- * Go back to clips from mode selection
+ * Go back to results from clip selection
  */
-function backFromModeSelection() {
-    comparisonModeSection.style.display = 'none';
+function backToResults() {
+    clipSelectionSection.style.display = 'none';
     resultsSection.style.display = 'block';
+
+    // Reset selections
+    selectedClips = [];
+    currentMode = null;
 }
 
 // Event Listeners
@@ -674,13 +704,16 @@ startBtn.addEventListener('click', startRecording);
 stopBtn.addEventListener('click', stopRecording);
 newSessionBtn.addEventListener('click', startNewSession);
 
-// Comparison event listeners
-compareBtn.addEventListener('click', showComparisonModeSelection);
+// Mode selection event listeners
+sideBySideModeBtn.addEventListener('click', () => showClipSelection('sidebyside'));
+overlayModeBtn.addEventListener('click', () => showClipSelection('overlay'));
+positionModeBtn.addEventListener('click', () => showClipSelection('position'));
+
+// Clip selection and comparison event listeners
+createComparisonBtn.addEventListener('click', createComparison);
+backToResultsBtn.addEventListener('click', backToResults);
 backToClipsBtn.addEventListener('click', backToClips);
-backFromModeBtn.addEventListener('click', backFromModeSelection);
-sideBySideModeBtn.addEventListener('click', createSideBySideComparison);
-overlayModeBtn.addEventListener('click', createOverlayComparison);
-positionModeBtn.addEventListener('click', createPositionComparison);
+downloadResultBtn.addEventListener('click', downloadResult);
 
 // Initialize on page load
 window.addEventListener('load', init);
