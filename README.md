@@ -47,9 +47,9 @@ A simple web application for recording and analyzing swing videos. Record your s
    - Railway automatically sets `PORT` (no action needed)
 
 4. **Deploy**
-   - Railway will automatically detect the Python app
-   - It will install FFmpeg (via nixpacks.toml)
-   - Your app will be live in ~2 minutes
+   - Railway will automatically detect the Dockerfile
+   - It will build the Docker image with FFmpeg included
+   - Your app will be live in ~3 minutes
 
 5. **Access your app**
    - Railway will provide a public URL (e.g., `your-app.railway.app`)
@@ -103,6 +103,20 @@ Visit `http://localhost:8000` in your browser.
 
 **Important:** Make sure FFmpeg is installed and available in your PATH, otherwise video processing will fail!
 
+### Using Docker (Alternative)
+
+If you prefer not to install FFmpeg locally, you can use Docker:
+
+```bash
+# Build the Docker image
+docker build -t swingcam .
+
+# Run the container
+docker run -p 8000:8000 -v $(pwd)/data:/app/data swingcam
+```
+
+Visit `http://localhost:8000` in your browser.
+
 ## Technical Stack
 
 - **Backend**: Python + FastAPI
@@ -116,7 +130,9 @@ Visit `http://localhost:8000` in your browser.
 /
 ├── main.py              # FastAPI backend
 ├── requirements.txt     # Python dependencies
-├── nixpacks.toml       # Railway/Nixpacks configuration
+├── Dockerfile           # Docker configuration (Railway uses this)
+├── .dockerignore        # Docker build exclusions
+├── nixpacks.toml        # Alternative Nixpacks configuration
 ├── static/
 │   ├── index.html      # Frontend UI
 │   ├── style.css       # Styles

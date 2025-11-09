@@ -28,10 +28,12 @@ git push origin main
 5. Click **"Deploy Now"**
 
 Railway will automatically:
-- Detect the Python application
-- Install dependencies from `requirements.txt`
-- Install FFmpeg (via `nixpacks.toml`)
+- Detect the Dockerfile and build the container
+- Install FFmpeg and all system dependencies
+- Install Python dependencies from `requirements.txt`
 - Start the FastAPI server
+
+**Note:** The Dockerfile ensures FFmpeg is properly installed, which is required for video processing.
 
 ### 3. Add a Volume for Storage
 
