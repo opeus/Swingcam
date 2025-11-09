@@ -500,10 +500,19 @@ footer a:hover {
         justify-content: center;
     }
 
-    /* Mobile comparison layout - show clips in vertical stack */
+    /* Mobile comparison layout - show clips side-by-side */
     .comparison-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+    }
+
+    .compare-item {
+        padding: 0.5rem;
+    }
+
+    .compare-item h4 {
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
     }
 
     .comparison-controls {
