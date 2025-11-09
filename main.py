@@ -260,15 +260,23 @@ async def create_clip(input_path: str, output_path: str, start_time: float, dura
 
 @app.get("/api/clips/{clip_filename}")
 async def serve_clip(clip_filename: str):
-    """Serve a processed video clip"""
+    """Serve a processed video clip or frame image"""
     clip_path = CLIPS_DIR / clip_filename
 
     if not clip_path.exists():
         raise HTTPException(status_code=404, detail="Clip not found")
 
+    # Determine media type based on file extension
+    if clip_filename.endswith('.jpg') or clip_filename.endswith('.jpeg'):
+        media_type = "image/jpeg"
+    elif clip_filename.endswith('.png'):
+        media_type = "image/png"
+    else:
+        media_type = "video/mp4"
+
     return FileResponse(
         clip_path,
-        media_type="video/mp4",
+        media_type=media_type,
         headers={
             "Accept-Ranges": "bytes",
             "Cache-Control": "public, max-age=3600"
