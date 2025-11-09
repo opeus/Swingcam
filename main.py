@@ -525,23 +525,27 @@ async def extract_position_frames(clip_paths: List[str], comparison_id: str) -> 
     try:
         frames = []
 
+        # Extract 10 frames evenly distributed through the 2-second video
+        # At positions: 0.0s, 0.22s, 0.44s, 0.67s, 0.89s, 1.11s, 1.33s, 1.56s, 1.78s, 2.0s
         for frame_num in range(10):
-            # Extract frame at position (frame_num / 9) through the video
-            # This gives us frames at 0%, 11%, 22%, ... 100% through the video
+            # Calculate timestamp (0% to 100% through 2-second video)
+            timestamp = (frame_num / 9.0) * 2.0  # 2 seconds duration
+
             frame_pairs = []
 
             for clip_idx, clip_path in enumerate(clip_paths):
                 output_filename = f"frame_{comparison_id}_clip{clip_idx}_f{frame_num}.jpg"
                 output_path = CLIPS_DIR / output_filename
 
-                # Get frame at specific percentage through video
-                # Using select filter to get frame at exact position
+                print(f"   📸 Extracting frame {frame_num + 1}/10 at {timestamp:.2f}s from clip {clip_idx}")
+
+                # Extract frame at specific timestamp
                 cmd = [
                     "ffmpeg",
+                    "-ss", str(timestamp),  # Seek to timestamp
                     "-i", clip_path,
-                    "-vf", f"select='eq(n\\,{frame_num*5})'",  # Every 5th frame (adjust as needed)
-                    "-vframes", "1",
-                    "-q:v", "2",
+                    "-vframes", "1",  # Extract 1 frame
+                    "-q:v", "2",  # High quality JPEG
                     "-y",
                     output_path
                 ]
@@ -550,8 +554,10 @@ async def extract_position_frames(clip_paths: List[str], comparison_id: str) -> 
 
                 if result.returncode == 0 and Path(output_path).exists():
                     frame_pairs.append(f"/api/clips/{output_filename}")
+                    print(f"   ✅ Frame extracted: {output_filename}")
                 else:
-                    print(f"   ⚠️  Failed to extract frame {frame_num} from clip {clip_idx}")
+                    print(f"   ❌ Failed to extract frame {frame_num} from clip {clip_idx}")
+                    print(f"   Error: {result.stderr[:200]}")
                     frame_pairs.append(None)
 
             if all(frame_pairs):
@@ -560,11 +566,16 @@ async def extract_position_frames(clip_paths: List[str], comparison_id: str) -> 
                     "clip1": frame_pairs[0],
                     "clip2": frame_pairs[1]
                 })
+            else:
+                print(f"   ⚠️  Skipping frame {frame_num + 1} - not all clips extracted successfully")
 
+        print(f"   🎉 Successfully extracted {len(frames)} frame pairs")
         return frames
 
     except Exception as e:
         print(f"   ❌ Frame extraction error: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 
