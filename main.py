@@ -120,6 +120,11 @@ async def process_video(
             if success:
                 clip_urls.append(f"/api/clips/{clip_filename}")
                 print(f"   ✅ Clip created: {clip_filename}")
+
+                # Generate thumbnail from middle of clip
+                thumbnail_filename = f"{session_id}_swing_{idx}_thumb.jpg"
+                thumbnail_path = CLIPS_DIR / thumbnail_filename
+                await create_thumbnail(str(clip_path), str(thumbnail_path))
             else:
                 print(f"   ❌ Failed to create clip {idx}")
 
@@ -255,6 +260,44 @@ async def create_clip(input_path: str, output_path: str, start_time: float, dura
         print(f"   ❌ FFmpeg error: {e}")
         import traceback
         traceback.print_exc()
+        return False
+
+
+async def create_thumbnail(clip_path: str, thumbnail_path: str) -> bool:
+    """
+    Create a thumbnail image from the middle of a video clip
+
+    Args:
+        clip_path: Path to the video clip
+        thumbnail_path: Path to save the thumbnail
+
+    Returns:
+        True if successful
+    """
+    try:
+        # Extract frame from middle of 2-second clip (at 1 second)
+        cmd = [
+            "ffmpeg",
+            "-i", clip_path,
+            "-ss", "1.0",  # Middle of 2-second clip
+            "-vframes", "1",
+            "-vf", "scale=320:-1",  # Width 320px, maintain aspect ratio
+            "-q:v", "3",  # Good quality
+            "-y",
+            thumbnail_path
+        ]
+
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+
+        if result.returncode == 0 and Path(thumbnail_path).exists():
+            print(f"   ✅ Thumbnail created: {thumbnail_path}")
+            return True
+        else:
+            print(f"   ⚠️  Thumbnail creation failed (non-critical)")
+            return False
+
+    except Exception as e:
+        print(f"   ⚠️  Thumbnail error (non-critical): {e}")
         return False
 
 

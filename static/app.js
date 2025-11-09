@@ -323,25 +323,65 @@ function displayClips(clipUrls, timestamps) {
         };
         allClips.push(clipData);
 
-        // Create clip element (NO checkboxes - just preview)
+        // Create clip element with thumbnail
         const clipItem = document.createElement('div');
         clipItem.className = 'clip-item';
         clipItem.dataset.clipIndex = index;
 
+        // Generate thumbnail URL (replace .mp4 with _thumb.jpg)
+        const thumbnailUrl = url.replace('.mp4', '_thumb.jpg');
+
         clipItem.innerHTML = `
-            <h4>Swing ${index + 1}</h4>
-            <video controls loop playsinline>
-                <source src="${url}" type="video/mp4">
-                Your browser does not support video playback.
-            </video>
-            <p class="clip-time">Detected at ${minutes}:${seconds.padStart(4, '0')}</p>
+            <div class="clip-thumbnail">
+                <img src="${thumbnailUrl}" alt="Swing ${index + 1}" loading="lazy">
+                <div class="play-overlay">▶</div>
+            </div>
+            <div class="clip-info">
+                <h4>Swing ${index + 1}</h4>
+                <p class="clip-time">${minutes}:${seconds.padStart(4, '0')}</p>
+            </div>
         `;
+
+        // Make thumbnail clickable to play video
+        const thumbnail = clipItem.querySelector('.clip-thumbnail');
+        thumbnail.addEventListener('click', () => {
+            showVideoModal(url, `Swing ${index + 1}`);
+        });
 
         clipsGrid.appendChild(clipItem);
         console.log(`✅ Added clip ${index + 1}: ${url}`);
     });
 
     console.log('🎉 All clips displayed!');
+}
+
+/**
+ * Show video in a modal/overlay
+ */
+function showVideoModal(videoUrl, title) {
+    // Create modal overlay
+    const modal = document.createElement('div');
+    modal.className = 'video-modal';
+    modal.innerHTML = `
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>${title}</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <video controls autoplay loop playsinline>
+                <source src="${videoUrl}" type="video/mp4">
+            </video>
+        </div>
+    `;
+
+    // Close on button click or background click
+    const closeBtn = modal.querySelector('.modal-close');
+    closeBtn.addEventListener('click', () => modal.remove());
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) modal.remove();
+    });
+
+    document.body.appendChild(modal);
 }
 
 /**

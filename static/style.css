@@ -279,40 +279,140 @@ header h1 {
 /* Clips Grid */
 .clips-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 1rem;
     margin-bottom: 2rem;
 }
 
 .clip-item {
     background: var(--background);
     border-radius: 0.5rem;
-    padding: 1rem;
     border: 2px solid var(--border-color);
     transition: all 0.2s;
+    overflow: hidden;
 }
 
 .clip-item:hover {
     border-color: var(--primary-color);
     box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+}
+
+.clip-thumbnail {
+    position: relative;
+    width: 100%;
+    padding-top: 133%; /* 3:4 aspect ratio for portrait video */
+    background: #000;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.clip-thumbnail img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.play-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50px;
+    height: 50px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    opacity: 0.9;
+    transition: all 0.2s;
+}
+
+.clip-thumbnail:hover .play-overlay {
+    background: var(--primary-color);
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.clip-info {
+    padding: 0.75rem;
+    text-align: center;
 }
 
 .clip-item h4 {
-    font-size: 1rem;
-    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+    margin: 0 0 0.25rem 0;
     color: var(--text-primary);
 }
 
-.clip-item video {
-    width: 100%;
-    border-radius: 0.25rem;
-    background: #000;
+.clip-time {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
 }
 
-.clip-time {
-    margin-top: 0.5rem;
-    font-size: 0.875rem;
+/* Video Modal */
+.video-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 0.75rem;
+    max-width: 500px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 2rem;
+    line-height: 1;
+    cursor: pointer;
     color: var(--text-secondary);
+    padding: 0;
+    width: 2rem;
+    height: 2rem;
+}
+
+.modal-close:hover {
+    color: var(--danger-color);
+}
+
+.modal-content video {
+    width: 100%;
+    display: block;
+    background: #000;
 }
 
 /* Clip Selection */
@@ -565,11 +665,12 @@ footer a:hover {
     }
 
     .card {
-        padding: 1.5rem;
+        padding: 1rem;
     }
 
     .clips-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 0.75rem;
     }
 
     .controls {
@@ -581,10 +682,23 @@ footer a:hover {
         justify-content: center;
     }
 
+    .comparison-modes {
+        grid-template-columns: 1fr;
+    }
+
+    .mode-btn {
+        padding: 1.5rem 1rem;
+    }
+
     /* Ensure videos stay inline on mobile */
     .compare-video,
-    .clip-item video {
+    .modal-content video {
         max-width: 100%;
         height: auto;
+    }
+
+    .frame-pair {
+        gap: 0.5rem;
+        padding: 0.75rem;
     }
 }
