@@ -277,41 +277,57 @@ async def serve_clip(clip_filename: str):
 
 
 @app.post("/api/compare")
-async def create_comparison(clips: List[str] = Form(...)):
+async def create_comparison(clips: str = Form(...)):
     """
     Create a side-by-side comparison video from multiple clips
 
     Args:
-        clips: List of clip filenames to compare (2-3 clips)
+        clips: JSON string of clip filenames to compare (2-3 clips)
 
     Returns:
         URL to the combined comparison video
     """
     try:
-        # Parse clips list if it's a JSON string
-        if isinstance(clips, str):
-            clips = json.loads(clips)
+        print(f"\n🎬 Creating comparison video")
+        print(f"📋 Received clips parameter: {clips}")
+        print(f"📋 Clips type: {type(clips)}")
 
-        print(f"\n🎬 Creating comparison video with {len(clips)} clips")
-        print(f"📋 Clips: {clips}")
+        # Parse clips list from JSON string
+        clip_list = json.loads(clips)
+        print(f"📋 Parsed clip list: {clip_list}")
 
-        if len(clips) < 2:
+        if not isinstance(clip_list, list):
+            raise HTTPException(status_code=400, detail="Clips must be a list")
+
+        if len(clip_list) < 2:
             raise HTTPException(status_code=400, detail="Need at least 2 clips to compare")
-        if len(clips) > 3:
+        if len(clip_list) > 3:
             raise HTTPException(status_code=400, detail="Maximum 3 clips for comparison")
 
         # Verify all clips exist
         clip_paths = []
-        for clip in clips:
-            clip_path = CLIPS_DIR / clip
+        for clip_filename in clip_list:
+            # Extract just the filename if it's a full path
+            if '/' in clip_filename:
+                clip_filename = clip_filename.split('/')[-1]
+
+            clip_path = CLIPS_DIR / clip_filename
+            print(f"   🔍 Looking for clip: {clip_path}")
+
             if not clip_path.exists():
-                raise HTTPException(status_code=404, detail=f"Clip not found: {clip}")
+                print(f"   ❌ Clip not found: {clip_path}")
+                print(f"   📂 CLIPS_DIR contents: {list(CLIPS_DIR.glob('*'))}")
+                raise HTTPException(status_code=404, detail=f"Clip not found: {clip_filename}")
+
             clip_paths.append(str(clip_path))
+            print(f"   ✅ Found clip: {clip_path}")
 
         # Generate output filename
         comparison_id = str(uuid.uuid4())
         output_filename = f"comparison_{comparison_id}.mp4"
         output_path = CLIPS_DIR / output_filename
+
+        print(f"   💾 Output will be: {output_path}")
 
         # Create side-by-side video using FFmpeg
         success = await create_sidebyside_video(clip_paths, str(output_path))
@@ -327,7 +343,11 @@ async def create_comparison(clips: List[str] = Form(...)):
         })
 
     except json.JSONDecodeError as e:
+        print(f"❌ JSON decode error: {e}")
+        print(f"   Raw clips value: {clips}")
         raise HTTPException(status_code=400, detail=f"Invalid clips format: {e}")
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"❌ Error creating comparison: {e}")
         import traceback
