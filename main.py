@@ -355,6 +355,219 @@ async def create_comparison(clips: str = Form(...)):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/api/compare/overlay")
+async def create_overlay_comparison(clips: str = Form(...)):
+    """
+    Create an overlay comparison video with 50% transparency
+
+    Args:
+        clips: JSON string of exactly 2 clip filenames
+
+    Returns:
+        URL to the overlay comparison video
+    """
+    try:
+        print(f"\n🎭 Creating overlay comparison")
+        clip_list = json.loads(clips)
+
+        if len(clip_list) != 2:
+            raise HTTPException(status_code=400, detail="Overlay requires exactly 2 clips")
+
+        # Verify clips exist
+        clip_paths = []
+        for clip_filename in clip_list:
+            if '/' in clip_filename:
+                clip_filename = clip_filename.split('/')[-1]
+            clip_path = CLIPS_DIR / clip_filename
+            if not clip_path.exists():
+                raise HTTPException(status_code=404, detail=f"Clip not found: {clip_filename}")
+            clip_paths.append(str(clip_path))
+
+        # Generate output filename
+        comparison_id = str(uuid.uuid4())
+        output_filename = f"overlay_{comparison_id}.mp4"
+        output_path = CLIPS_DIR / output_filename
+
+        # Create overlay video
+        success = await create_overlay_video(clip_paths, str(output_path))
+
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to create overlay video")
+
+        print(f"✅ Overlay video created: {output_filename}")
+
+        return JSONResponse({
+            "success": True,
+            "comparison_url": f"/api/clips/{output_filename}"
+        })
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error creating overlay: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/compare/position")
+async def create_position_comparison(clips: str = Form(...)):
+    """
+    Create position comparison with 10 still frames from each video
+
+    Args:
+        clips: JSON string of exactly 2 clip filenames
+
+    Returns:
+        URLs to the 10 frame pairs
+    """
+    try:
+        print(f"\n📸 Creating position comparison")
+        clip_list = json.loads(clips)
+
+        if len(clip_list) != 2:
+            raise HTTPException(status_code=400, detail="Position compare requires exactly 2 clips")
+
+        # Verify clips exist
+        clip_paths = []
+        for clip_filename in clip_list:
+            if '/' in clip_filename:
+                clip_filename = clip_filename.split('/')[-1]
+            clip_path = CLIPS_DIR / clip_filename
+            if not clip_path.exists():
+                raise HTTPException(status_code=404, detail=f"Clip not found: {clip_filename}")
+            clip_paths.append(str(clip_path))
+
+        # Generate unique ID for this comparison
+        comparison_id = str(uuid.uuid4())
+
+        # Extract frames
+        frames = await extract_position_frames(clip_paths, comparison_id)
+
+        if not frames:
+            raise HTTPException(status_code=500, detail="Failed to extract frames")
+
+        print(f"✅ Position comparison created: {len(frames)} frame pairs")
+
+        return JSONResponse({
+            "success": True,
+            "frames": frames
+        })
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error creating position comparison: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+async def create_overlay_video(clip_paths: List[str], output_path: str) -> bool:
+    """
+    Create overlay video with second clip at 50% transparency
+
+    Args:
+        clip_paths: List of exactly 2 clip paths
+        output_path: Path to save output video
+
+    Returns:
+        True if successful
+    """
+    try:
+        # Overlay filter: second video on top with 50% transparency
+        filter_complex = "[1:v]format=yuva420p,colorchannelmixer=aa=0.5[v1];[0:v][v1]overlay[v]"
+        audio_mix = "[0:a][1:a]amerge=inputs=2[a]"
+
+        cmd = [
+            "ffmpeg",
+            "-i", clip_paths[0],
+            "-i", clip_paths[1],
+            "-filter_complex", f"{filter_complex};{audio_mix}",
+            "-map", "[v]",
+            "-map", "[a]",
+            "-c:v", "libx264",
+            "-preset", "fast",
+            "-crf", "23",
+            "-c:a", "aac",
+            "-ac", "2",
+            "-y",
+            output_path
+        ]
+
+        print(f"   🎬 Running FFmpeg overlay: {' '.join(cmd)}")
+
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+
+        if result.returncode == 0 and Path(output_path).exists():
+            print(f"   ✅ Overlay created! Size: {Path(output_path).stat().st_size} bytes")
+            return True
+        else:
+            print(f"   ❌ FFmpeg failed: {result.stderr[:500]}")
+            return False
+
+    except Exception as e:
+        print(f"   ❌ Overlay error: {e}")
+        return False
+
+
+async def extract_position_frames(clip_paths: List[str], comparison_id: str) -> List[dict]:
+    """
+    Extract 10 evenly-spaced frames from each video
+
+    Args:
+        clip_paths: List of exactly 2 clip paths
+        comparison_id: Unique ID for this comparison
+
+    Returns:
+        List of frame pair dictionaries
+    """
+    try:
+        frames = []
+
+        for frame_num in range(10):
+            # Extract frame at position (frame_num / 9) through the video
+            # This gives us frames at 0%, 11%, 22%, ... 100% through the video
+            frame_pairs = []
+
+            for clip_idx, clip_path in enumerate(clip_paths):
+                output_filename = f"frame_{comparison_id}_clip{clip_idx}_f{frame_num}.jpg"
+                output_path = CLIPS_DIR / output_filename
+
+                # Get frame at specific percentage through video
+                # Using select filter to get frame at exact position
+                cmd = [
+                    "ffmpeg",
+                    "-i", clip_path,
+                    "-vf", f"select='eq(n\\,{frame_num*5})'",  # Every 5th frame (adjust as needed)
+                    "-vframes", "1",
+                    "-q:v", "2",
+                    "-y",
+                    output_path
+                ]
+
+                result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+
+                if result.returncode == 0 and Path(output_path).exists():
+                    frame_pairs.append(f"/api/clips/{output_filename}")
+                else:
+                    print(f"   ⚠️  Failed to extract frame {frame_num} from clip {clip_idx}")
+                    frame_pairs.append(None)
+
+            if all(frame_pairs):
+                frames.append({
+                    "frame_num": frame_num + 1,
+                    "clip1": frame_pairs[0],
+                    "clip2": frame_pairs[1]
+                })
+
+        return frames
+
+    except Exception as e:
+        print(f"   ❌ Frame extraction error: {e}")
+        return []
+
+
 async def create_sidebyside_video(clip_paths: List[str], output_path: str) -> bool:
     """
     Use FFmpeg to create a side-by-side comparison video

@@ -21,9 +21,14 @@ const newSessionBtn = document.getElementById('new-session-btn');
 // Comparison elements
 const compareBtn = document.getElementById('compare-btn');
 const selectedCountSpan = document.getElementById('selected-count');
+const comparisonModeSection = document.getElementById('comparison-mode-section');
 const comparisonSection = document.getElementById('comparison-section');
 const comparisonGrid = document.getElementById('comparison-grid');
 const backToClipsBtn = document.getElementById('back-to-clips-btn');
+const backFromModeBtn = document.getElementById('back-from-mode-btn');
+const sideBySideModeBtn = document.getElementById('sidebyside-mode-btn');
+const overlayModeBtn = document.getElementById('overlay-mode-btn');
+const positionModeBtn = document.getElementById('position-mode-btn');
 
 // State
 let mediaStream = null;
@@ -376,6 +381,7 @@ function startNewSession() {
     // Reset UI
     resultsSection.style.display = 'none';
     comparisonSection.style.display = 'none';
+    comparisonModeSection.style.display = 'none';
     recordingSection.style.display = 'block';
     swingsList.style.display = 'none';
     swingTimestamps.innerHTML = '';
@@ -416,70 +422,64 @@ function updateSelectedCount() {
 }
 
 /**
- * Show comparison view with selected clips
+ * Show comparison mode selection
  */
-async function showComparison() {
+function showComparisonModeSelection() {
     if (selectedClips.length < 2) return;
-    if (selectedClips.length > 3) {
+
+    // Update mode buttons based on selection count
+    if (selectedClips.length === 2) {
+        // All modes available for 2 clips
+        overlayModeBtn.disabled = false;
+        positionModeBtn.disabled = false;
+    } else if (selectedClips.length === 3) {
+        // Only side-by-side for 3 clips
+        overlayModeBtn.disabled = true;
+        positionModeBtn.disabled = true;
+    } else {
         alert('Please select 2-3 clips for comparison');
         return;
     }
 
-    // Hide results, show loading
+    // Show mode selection
     resultsSection.style.display = 'none';
+    comparisonModeSection.style.display = 'block';
+}
+
+/**
+ * Create side-by-side comparison
+ */
+async function createSideBySideComparison() {
+    if (selectedClips.length < 2 || selectedClips.length > 3) {
+        alert('Please select 2-3 clips for side-by-side comparison');
+        return;
+    }
+
+    comparisonModeSection.style.display = 'none';
     processingSection.style.display = 'block';
 
     try {
-        console.log('🎬 Creating server-side comparison video...');
-
-        // Extract clip filenames from URLs
         const clipFilenames = selectedClips.map(clip => {
             const urlParts = clip.url.split('/');
             return urlParts[urlParts.length - 1];
         });
 
-        console.log('📋 Clip filenames:', clipFilenames);
-
-        // Create form data
         const formData = new FormData();
         formData.append('clips', JSON.stringify(clipFilenames));
 
-        // Request comparison video from server
         const response = await fetch('/api/compare', {
             method: 'POST',
             body: formData
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`Server error: ${response.status} - ${errorText}`);
+            throw new Error(`Server error: ${response.status}`);
         }
 
         const result = await response.json();
-        console.log('✅ Comparison created:', result);
 
         if (result.success && result.comparison_url) {
-            // Show comparison view with single combined video
-            processingSection.style.display = 'none';
-            comparisonSection.style.display = 'block';
-
-            // Clear comparison grid
-            comparisonGrid.innerHTML = '';
-
-            // Create single comparison video element
-            const compareItem = document.createElement('div');
-            compareItem.className = 'compare-item-full';
-
-            compareItem.innerHTML = `
-                <video class="compare-video" controls loop playsinline webkit-playsinline>
-                    <source src="${result.comparison_url}" type="video/mp4">
-                    Your browser does not support video playback.
-                </video>
-            `;
-
-            comparisonGrid.appendChild(compareItem);
-
-            console.log(`🎉 Comparison video ready: ${result.comparison_url}`);
+            showVideoComparison(result.comparison_url, 'Side-by-Side Comparison');
         } else {
             throw new Error('Failed to create comparison video');
         }
@@ -487,9 +487,165 @@ async function showComparison() {
     } catch (error) {
         console.error('❌ Comparison error:', error);
         processingSection.style.display = 'none';
-        resultsSection.style.display = 'block';
+        comparisonModeSection.style.display = 'block';
         alert(`Error creating comparison: ${error.message}`);
     }
+}
+
+/**
+ * Create overlay comparison
+ */
+async function createOverlayComparison() {
+    if (selectedClips.length !== 2) {
+        alert('Please select exactly 2 clips for overlay comparison');
+        return;
+    }
+
+    comparisonModeSection.style.display = 'none';
+    processingSection.style.display = 'block';
+
+    try {
+        const clipFilenames = selectedClips.map(clip => {
+            const urlParts = clip.url.split('/');
+            return urlParts[urlParts.length - 1];
+        });
+
+        const formData = new FormData();
+        formData.append('clips', JSON.stringify(clipFilenames));
+
+        const response = await fetch('/api/compare/overlay', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success && result.comparison_url) {
+            showVideoComparison(result.comparison_url, 'Overlay Comparison (50% Transparency)');
+        } else {
+            throw new Error('Failed to create overlay video');
+        }
+
+    } catch (error) {
+        console.error('❌ Overlay error:', error);
+        processingSection.style.display = 'none';
+        comparisonModeSection.style.display = 'block';
+        alert(`Error creating overlay: ${error.message}`);
+    }
+}
+
+/**
+ * Create position comparison
+ */
+async function createPositionComparison() {
+    if (selectedClips.length !== 2) {
+        alert('Please select exactly 2 clips for position comparison');
+        return;
+    }
+
+    comparisonModeSection.style.display = 'none';
+    processingSection.style.display = 'block';
+
+    try {
+        const clipFilenames = selectedClips.map(clip => {
+            const urlParts = clip.url.split('/');
+            return urlParts[urlParts.length - 1];
+        });
+
+        const formData = new FormData();
+        formData.append('clips', JSON.stringify(clipFilenames));
+
+        const response = await fetch('/api/compare/position', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error(`Server error: ${response.status}`);
+        }
+
+        const result = await response.json();
+
+        if (result.success && result.frames) {
+            showPositionComparison(result.frames);
+        } else {
+            throw new Error('Failed to create position comparison');
+        }
+
+    } catch (error) {
+        console.error('❌ Position comparison error:', error);
+        processingSection.style.display = 'none';
+        comparisonModeSection.style.display = 'block';
+        alert(`Error creating position comparison: ${error.message}`);
+    }
+}
+
+/**
+ * Show video comparison result
+ */
+function showVideoComparison(videoUrl, title) {
+    processingSection.style.display = 'none';
+    comparisonSection.style.display = 'block';
+
+    // Update title
+    comparisonSection.querySelector('h2').textContent = title;
+
+    // Clear and add video
+    comparisonGrid.innerHTML = '';
+    const compareItem = document.createElement('div');
+    compareItem.className = 'compare-item-full';
+
+    compareItem.innerHTML = `
+        <video class="compare-video" controls loop playsinline webkit-playsinline>
+            <source src="${videoUrl}" type="video/mp4">
+            Your browser does not support video playback.
+        </video>
+    `;
+
+    comparisonGrid.appendChild(compareItem);
+}
+
+/**
+ * Show position comparison result
+ */
+function showPositionComparison(frames) {
+    processingSection.style.display = 'none';
+    comparisonSection.style.display = 'block';
+
+    // Update title
+    comparisonSection.querySelector('h2').textContent = 'Position Comparison';
+
+    // Hide the comparison note (for video controls)
+    comparisonSection.querySelector('.comparison-note').style.display = 'none';
+
+    // Clear and add frames
+    comparisonGrid.innerHTML = '';
+    const positionFrames = document.createElement('div');
+    positionFrames.className = 'position-frames';
+
+    frames.forEach(frame => {
+        const framePair = document.createElement('div');
+        framePair.className = 'frame-pair';
+
+        framePair.innerHTML = `
+            <div class="frame-item">
+                <h4>${selectedClips[0].label} - Frame ${frame.frame_num}</h4>
+                <img src="${frame.clip1}" alt="Frame ${frame.frame_num}">
+            </div>
+            <div class="frame-item">
+                <h4>${selectedClips[1].label} - Frame ${frame.frame_num}</h4>
+                <img src="${frame.clip2}" alt="Frame ${frame.frame_num}">
+            </div>
+        `;
+
+        positionFrames.appendChild(framePair);
+    });
+
+    comparisonGrid.appendChild(positionFrames);
 }
 
 /**
@@ -497,6 +653,19 @@ async function showComparison() {
  */
 function backToClips() {
     comparisonSection.style.display = 'none';
+    comparisonModeSection.style.display = 'none';
+    resultsSection.style.display = 'block';
+
+    // Reset comparison note visibility
+    const note = comparisonSection.querySelector('.comparison-note');
+    if (note) note.style.display = 'block';
+}
+
+/**
+ * Go back to clips from mode selection
+ */
+function backFromModeSelection() {
+    comparisonModeSection.style.display = 'none';
     resultsSection.style.display = 'block';
 }
 
@@ -506,8 +675,12 @@ stopBtn.addEventListener('click', stopRecording);
 newSessionBtn.addEventListener('click', startNewSession);
 
 // Comparison event listeners
-compareBtn.addEventListener('click', showComparison);
+compareBtn.addEventListener('click', showComparisonModeSelection);
 backToClipsBtn.addEventListener('click', backToClips);
+backFromModeBtn.addEventListener('click', backFromModeSelection);
+sideBySideModeBtn.addEventListener('click', createSideBySideComparison);
+overlayModeBtn.addEventListener('click', createOverlayComparison);
+positionModeBtn.addEventListener('click', createPositionComparison);
 
 // Initialize on page load
 window.addEventListener('load', init);
