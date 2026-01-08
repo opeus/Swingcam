@@ -52,6 +52,26 @@ const sideBySideModeBtn = document.getElementById('sidebyside-mode-btn');
 const overlayModeBtn = document.getElementById('overlay-mode-btn');
 const positionModeBtn = document.getElementById('position-mode-btn');
 
+// Head Tracking Elements
+const headtrackModeBtn = document.getElementById('headtrack-mode-btn');
+const headtrackSection = document.getElementById('headtrack-section');
+const headtrackClipsGrid = document.getElementById('headtrack-clips-grid');
+const headtrackClipSelection = document.getElementById('headtrack-clip-selection');
+const headtrackProcessing = document.getElementById('headtrack-processing');
+const headtrackResults = document.getElementById('headtrack-results');
+const headtrackVideo = document.getElementById('headtrack-video');
+const headtrackCanvas = document.getElementById('headtrack-canvas');
+const headtrackProgress = document.getElementById('headtrack-progress');
+const headtrackProgressText = document.getElementById('headtrack-progress-text');
+const headtrackPlayBtn = document.getElementById('headtrack-play-btn');
+const headtrackResetBtn = document.getElementById('headtrack-reset-btn');
+const headtrackShowTrace = document.getElementById('headtrack-show-trace');
+const headtrackShowBox = document.getElementById('headtrack-show-box');
+const headtrackBackBtn = document.getElementById('headtrack-back-btn');
+const statTotalMovement = document.getElementById('stat-total-movement');
+const statMaxDeviation = document.getElementById('stat-max-deviation');
+const statStability = document.getElementById('stat-stability');
+
 // State
 let mediaStream = null;
 let mediaRecorder = null;
@@ -67,6 +87,16 @@ let selectedClips = [];
 let allClips = [];
 let currentMode = null; // 'sidebyside', 'overlay', or 'position'
 let currentComparisonUrl = null; // For downloads
+
+// Head Tracking State
+let faceDetector = null;
+let headPositions = [];
+let isHeadtrackPlaying = false;
+let headtrackAnimationFrame = null;
+
+// Upload State
+let uploadedVideoFile = null;
+let uploadedVideoUrl = null;
 
 // Audio detection configuration
 const DETECTION_CONFIG = {
@@ -827,36 +857,6 @@ function backToResults() {
     selectedClips = [];
     currentMode = null;
 }
-
-// Head Tracking Elements
-const headtrackModeBtn = document.getElementById('headtrack-mode-btn');
-const headtrackSection = document.getElementById('headtrack-section');
-const headtrackClipsGrid = document.getElementById('headtrack-clips-grid');
-const headtrackClipSelection = document.getElementById('headtrack-clip-selection');
-const headtrackProcessing = document.getElementById('headtrack-processing');
-const headtrackResults = document.getElementById('headtrack-results');
-const headtrackVideo = document.getElementById('headtrack-video');
-const headtrackCanvas = document.getElementById('headtrack-canvas');
-const headtrackProgress = document.getElementById('headtrack-progress');
-const headtrackProgressText = document.getElementById('headtrack-progress-text');
-const headtrackPlayBtn = document.getElementById('headtrack-play-btn');
-const headtrackResetBtn = document.getElementById('headtrack-reset-btn');
-const headtrackShowTrace = document.getElementById('headtrack-show-trace');
-const headtrackShowBox = document.getElementById('headtrack-show-box');
-const headtrackBackBtn = document.getElementById('headtrack-back-btn');
-const statTotalMovement = document.getElementById('stat-total-movement');
-const statMaxDeviation = document.getElementById('stat-max-deviation');
-const statStability = document.getElementById('stat-stability');
-
-// Head Tracking State
-let faceDetector = null;
-let headPositions = [];
-let isHeadtrackPlaying = false;
-let headtrackAnimationFrame = null;
-
-// Upload State
-let uploadedVideoFile = null;
-let uploadedVideoUrl = null;
 
 /**
  * Initialize TensorFlow.js Face Detection Model
