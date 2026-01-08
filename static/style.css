@@ -53,6 +53,100 @@ header h1 {
     color: var(--text-secondary);
 }
 
+/* Start Section */
+.start-description {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 1.125rem;
+    margin-bottom: 2rem;
+}
+
+.start-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    max-width: 700px;
+    margin: 0 auto;
+}
+
+.start-option-btn {
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 1rem;
+    padding: 2rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-align: center;
+}
+
+.start-option-btn:hover {
+    border-color: var(--primary-color);
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-4px);
+}
+
+.start-option-btn:active {
+    transform: translateY(-2px);
+}
+
+.start-option-icon {
+    font-size: 4rem;
+    display: block;
+    margin-bottom: 1rem;
+}
+
+.start-option-btn h3 {
+    font-size: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+}
+
+.start-option-btn p {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.start-option-highlight {
+    background: linear-gradient(135deg, #eff6ff 0%, #f3e8ff 100%);
+    border-color: #7c3aed;
+}
+
+.start-option-highlight:hover {
+    border-color: #5b21b6;
+    box-shadow: 0 10px 25px rgba(124, 58, 237, 0.3);
+}
+
+/* Section Header with Back Button */
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.section-header h2 {
+    margin-bottom: 0;
+}
+
+.btn-back {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+}
+
+.btn-back:hover {
+    background: var(--background);
+    color: var(--primary-hover);
+}
+
 /* Cards */
 .card {
     background: var(--card-background);

@@ -19,18 +19,31 @@
 
         <!-- Main Content -->
         <main>
-            <!-- Recording Section -->
-            <section id="recording-section" class="card">
-                <h2>Step 1: Record or Upload Your Swings</h2>
+            <!-- Start Section - Mode Selection -->
+            <section id="start-section" class="card">
+                <h2>What would you like to do?</h2>
+                <p class="start-description">Choose how you want to analyze your golf swing</p>
 
-                <!-- Mode Toggle -->
-                <div class="input-mode-toggle">
-                    <button id="record-mode-btn" class="toggle-btn active">
-                        <span class="icon">🎥</span> Record
+                <div class="start-options">
+                    <button id="start-record-btn" class="start-option-btn">
+                        <span class="start-option-icon">🎥</span>
+                        <h3>Record Swings</h3>
+                        <p>Use your camera to record swings. The app will automatically detect each swing by sound.</p>
                     </button>
-                    <button id="upload-mode-btn" class="toggle-btn">
-                        <span class="icon">📤</span> Upload Video
+
+                    <button id="start-upload-btn" class="start-option-btn start-option-highlight">
+                        <span class="start-option-icon">📤</span>
+                        <h3>Upload Video</h3>
+                        <p>Upload an existing video to analyze head movement through your swing.</p>
                     </button>
+                </div>
+            </section>
+
+            <!-- Recording Section -->
+            <section id="recording-section" class="card" style="display: none;">
+                <div class="section-header">
+                    <h2>Record Your Swings</h2>
+                    <button id="back-to-start-btn" class="btn-back">← Back</button>
                 </div>
 
                 <!-- Recording Mode -->
@@ -55,31 +68,6 @@
                     </div>
                 </div>
 
-                <!-- Upload Mode -->
-                <div id="upload-mode" style="display: none;">
-                    <div class="upload-area" id="upload-area">
-                        <div class="upload-icon">📁</div>
-                        <p class="upload-text">Drag and drop a video file here</p>
-                        <p class="upload-subtext">or tap to browse</p>
-                        <input type="file" id="video-upload" accept="video/*" class="upload-input-overlay">
-                        <p class="upload-formats">Supports: MP4, MOV, WebM</p>
-                    </div>
-
-                    <div id="upload-preview-container" style="display: none;">
-                        <div class="video-container">
-                            <video id="upload-preview" controls playsinline></video>
-                        </div>
-                        <div class="controls">
-                            <button id="analyze-upload-btn" class="btn btn-primary">
-                                <span class="icon">🎯</span> Analyze Head Movement
-                            </button>
-                            <button id="clear-upload-btn" class="btn btn-secondary">
-                                <span class="icon">🗑️</span> Clear
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Detected Swings List -->
                 <div id="swings-list" class="swings-list" style="display: none;">
                     <h3>Detected Swings</h3>
@@ -88,6 +76,36 @@
 
                 <!-- Status Messages -->
                 <div id="status" class="status"></div>
+            </section>
+
+            <!-- Upload Section -->
+            <section id="upload-section" class="card" style="display: none;">
+                <div class="section-header">
+                    <h2>Upload Your Video</h2>
+                    <button id="upload-back-to-start-btn" class="btn-back">← Back</button>
+                </div>
+
+                <div class="upload-area" id="upload-area">
+                    <div class="upload-icon">📁</div>
+                    <p class="upload-text">Drag and drop a video file here</p>
+                    <p class="upload-subtext">or tap to browse</p>
+                    <input type="file" id="video-upload" accept="video/*" class="upload-input-overlay">
+                    <p class="upload-formats">Supports: MP4, MOV, WebM</p>
+                </div>
+
+                <div id="upload-preview-container" style="display: none;">
+                    <div class="video-container">
+                        <video id="upload-preview" controls playsinline></video>
+                    </div>
+                    <div class="controls">
+                        <button id="analyze-upload-btn" class="btn btn-primary">
+                            <span class="icon">🎯</span> Analyze Head Movement
+                        </button>
+                        <button id="clear-upload-btn" class="btn btn-secondary">
+                            <span class="icon">🗑️</span> Clear
+                        </button>
+                    </div>
+                </div>
             </section>
 
             <!-- Processing Section -->
@@ -136,7 +154,7 @@
 
                 <div class="controls">
                     <button id="new-session-btn" class="btn btn-secondary">
-                        <span class="icon">🔄</span> Record New Session
+                        <span class="icon">🔄</span> Start Over
                     </button>
                 </div>
             </section>

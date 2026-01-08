@@ -12,17 +12,21 @@ const swingCount = document.getElementById('swing-count');
 const swingsList = document.getElementById('swings-list');
 const swingTimestamps = document.getElementById('swing-timestamps');
 const statusDiv = document.getElementById('status');
+const startSection = document.getElementById('start-section');
 const recordingSection = document.getElementById('recording-section');
+const uploadSection = document.getElementById('upload-section');
 const processingSection = document.getElementById('processing-section');
 const resultsSection = document.getElementById('results-section');
 const clipsGrid = document.getElementById('clips-grid');
 const newSessionBtn = document.getElementById('new-session-btn');
 
+// Start section elements
+const startRecordBtn = document.getElementById('start-record-btn');
+const startUploadBtn = document.getElementById('start-upload-btn');
+const backToStartBtn = document.getElementById('back-to-start-btn');
+const uploadBackToStartBtn = document.getElementById('upload-back-to-start-btn');
+
 // Upload elements
-const recordModeBtn = document.getElementById('record-mode-btn');
-const uploadModeBtn = document.getElementById('upload-mode-btn');
-const recordMode = document.getElementById('record-mode');
-const uploadMode = document.getElementById('upload-mode');
 const uploadArea = document.getElementById('upload-area');
 const videoUpload = document.getElementById('video-upload');
 const uploadPreviewContainer = document.getElementById('upload-preview-container');
@@ -75,9 +79,17 @@ const DETECTION_CONFIG = {
 let lastDetectionTime = 0;
 
 /**
- * Initialize the application
+ * Initialize the application - just set up event listeners
  */
-async function init() {
+function init() {
+    // App starts showing the start section (choice between record/upload)
+    console.log('🎬 Swingcam initialized - waiting for user choice');
+}
+
+/**
+ * Initialize camera and microphone for recording mode
+ */
+async function initCamera() {
     try {
         // Request camera and microphone access
         mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -103,10 +115,55 @@ async function init() {
         startBtn.disabled = false;
         showStatus('Ready to record! Press "Start Recording" when ready.', 'info');
 
+        return true;
     } catch (error) {
         console.error('Error accessing media devices:', error);
         showStatus('Error: Could not access camera/microphone. Please grant permissions.', 'error');
+        return false;
     }
+}
+
+/**
+ * Show the start section (mode selection)
+ */
+function showStartSection() {
+    // Stop any active media streams
+    if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+    }
+
+    // Hide all sections
+    startSection.style.display = 'block';
+    recordingSection.style.display = 'none';
+    uploadSection.style.display = 'none';
+    processingSection.style.display = 'none';
+    resultsSection.style.display = 'none';
+    comparisonSection.style.display = 'none';
+    clipSelectionSection.style.display = 'none';
+    headtrackSection.style.display = 'none';
+
+    // Reset state
+    clearUpload();
+}
+
+/**
+ * Show recording mode
+ */
+async function showRecordingMode() {
+    startSection.style.display = 'none';
+    recordingSection.style.display = 'block';
+
+    // Initialize camera
+    await initCamera();
+}
+
+/**
+ * Show upload mode
+ */
+function showUploadMode() {
+    startSection.style.display = 'none';
+    uploadSection.style.display = 'block';
 }
 
 /**
@@ -424,23 +481,9 @@ function showStatus(message, type = 'info') {
 }
 
 /**
- * Start a new session
+ * Start a new session - go back to start selection
  */
 function startNewSession() {
-    // Reset UI
-    resultsSection.style.display = 'none';
-    comparisonSection.style.display = 'none';
-    clipSelectionSection.style.display = 'none';
-    headtrackSection.style.display = 'none';
-    recordingSection.style.display = 'block';
-    swingsList.style.display = 'none';
-    swingTimestamps.innerHTML = '';
-    statusDiv.className = 'status';
-
-    // Reset to record mode
-    switchToRecordMode();
-    clearUpload();
-
     // Reset state
     detectedSwings = [];
     recordedChunks = [];
@@ -449,9 +492,13 @@ function startNewSession() {
     currentMode = null;
     currentComparisonUrl = null;
     headPositions = [];
+    swingTimestamps.innerHTML = '';
+    swingsList.style.display = 'none';
+    statusDiv.className = 'status';
     updateSwingCount();
 
-    showStatus('Ready to record! Press "Start Recording" when ready.', 'info');
+    // Go back to start section
+    showStartSection();
 }
 
 /**
@@ -1285,26 +1332,6 @@ function backFromHeadtrack() {
 }
 
 /**
- * Switch to record mode
- */
-function switchToRecordMode() {
-    recordModeBtn.classList.add('active');
-    uploadModeBtn.classList.remove('active');
-    recordMode.style.display = 'block';
-    uploadMode.style.display = 'none';
-}
-
-/**
- * Switch to upload mode
- */
-function switchToUploadMode() {
-    uploadModeBtn.classList.add('active');
-    recordModeBtn.classList.remove('active');
-    uploadMode.style.display = 'block';
-    recordMode.style.display = 'none';
-}
-
-/**
  * Handle file selection for upload
  */
 function handleFileSelect(file) {
@@ -1367,7 +1394,7 @@ async function analyzeUploadedVideo() {
     };
 
     // Show head tracking section directly (skip results section)
-    recordingSection.style.display = 'none';
+    uploadSection.style.display = 'none';
     headtrackSection.style.display = 'block';
 
     // Hide clip selection, go directly to processing
@@ -1419,7 +1446,7 @@ async function analyzeUploadedVideo() {
         console.error('❌ Head tracking analysis failed:', error);
         alert('Head tracking analysis failed. Make sure a face is visible in the video.');
         headtrackSection.style.display = 'none';
-        recordingSection.style.display = 'block';
+        uploadSection.style.display = 'block';
     }
 }
 
@@ -1429,9 +1456,9 @@ async function analyzeUploadedVideo() {
 function backFromHeadtrackToUpload() {
     headtrackSection.style.display = 'none';
 
-    // If we came from upload, go back to recording section
+    // If we came from upload, go back to upload section
     if (uploadedVideoUrl) {
-        recordingSection.style.display = 'block';
+        uploadSection.style.display = 'block';
     } else {
         resultsSection.style.display = 'block';
     }
@@ -1467,9 +1494,13 @@ headtrackBackBtn.addEventListener('click', backFromHeadtrackToUpload);
 headtrackShowTrace.addEventListener('change', drawHeadtrackOverlay);
 headtrackShowBox.addEventListener('change', drawHeadtrackOverlay);
 
+// Start section event listeners
+startRecordBtn.addEventListener('click', showRecordingMode);
+startUploadBtn.addEventListener('click', showUploadMode);
+backToStartBtn.addEventListener('click', showStartSection);
+uploadBackToStartBtn.addEventListener('click', showStartSection);
+
 // Upload event listeners
-recordModeBtn.addEventListener('click', switchToRecordMode);
-uploadModeBtn.addEventListener('click', switchToUploadMode);
 analyzeUploadBtn.addEventListener('click', analyzeUploadedVideo);
 clearUploadBtn.addEventListener('click', clearUpload);
 
