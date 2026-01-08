@@ -215,6 +215,24 @@
                     </div>
                 </div>
 
+                <!-- Club Head Selection Step -->
+                <div id="headtrack-select-club" style="display: none;">
+                    <p class="headtrack-instruction">Tap on the club head to start tracking</p>
+                    <div class="headtrack-video-container" id="selection-container">
+                        <video id="selection-video" playsinline></video>
+                        <canvas id="selection-canvas"></canvas>
+                        <div id="selection-marker" class="selection-marker" style="display: none;"></div>
+                    </div>
+                    <div class="controls">
+                        <button id="confirm-selection-btn" class="btn btn-primary" disabled>
+                            <span class="icon">✓</span> Start Tracking
+                        </button>
+                        <button id="cancel-selection-btn" class="btn btn-secondary">
+                            <span class="icon">←</span> Back
+                        </button>
+                    </div>
+                </div>
+
                 <!-- Processing indicator -->
                 <div id="headtrack-processing" style="display: none;">
                     <div class="loader"></div>

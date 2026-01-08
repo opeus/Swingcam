@@ -72,6 +72,15 @@ const statTotalMovement = document.getElementById('stat-total-movement');
 const statMaxDeviation = document.getElementById('stat-max-deviation');
 const statStability = document.getElementById('stat-stability');
 
+// Club selection elements
+const headtrackSelectClub = document.getElementById('headtrack-select-club');
+const selectionVideo = document.getElementById('selection-video');
+const selectionCanvas = document.getElementById('selection-canvas');
+const selectionContainer = document.getElementById('selection-container');
+const selectionMarker = document.getElementById('selection-marker');
+const confirmSelectionBtn = document.getElementById('confirm-selection-btn');
+const cancelSelectionBtn = document.getElementById('cancel-selection-btn');
+
 // State
 let mediaStream = null;
 let mediaRecorder = null;
@@ -97,6 +106,11 @@ let headtrackAnimationFrame = null;
 // Upload State
 let uploadedVideoFile = null;
 let uploadedVideoUrl = null;
+
+// Club selection state
+let selectedClubPoint = null;  // {x, y} in video coordinates
+let clubTemplate = null;       // ImageData of the template to track
+const TEMPLATE_SIZE = 32;      // Size of template to extract and match
 
 // Audio detection configuration
 const DETECTION_CONFIG = {
@@ -1439,7 +1453,7 @@ function clearUpload() {
 }
 
 /**
- * Analyze the uploaded video for head tracking
+ * Analyze the uploaded video - show selection step first
  */
 async function analyzeUploadedVideo() {
     if (!uploadedVideoUrl) {
@@ -1447,21 +1461,123 @@ async function analyzeUploadedVideo() {
         return;
     }
 
-    console.log('🏌️ Starting club path analysis for uploaded video');
+    console.log('🏌️ Starting club selection for uploaded video');
 
-    // Show club tracking section directly (skip results section)
+    // Reset selection state
+    selectedClubPoint = null;
+    clubTemplate = null;
+    selectionMarker.style.display = 'none';
+    confirmSelectionBtn.disabled = true;
+
+    // Show club tracking section with selection step
     uploadSection.style.display = 'none';
     headtrackSection.style.display = 'block';
-
-    // Hide clip selection, go directly to processing
     headtrackClipSelection.style.display = 'none';
-    headtrackProcessing.style.display = 'block';
+    headtrackSelectClub.style.display = 'block';
+    headtrackProcessing.style.display = 'none';
     headtrackResults.style.display = 'none';
+
+    try {
+        // Load the video for selection
+        selectionVideo.src = uploadedVideoUrl;
+
+        await new Promise((resolve, reject) => {
+            selectionVideo.onloadedmetadata = resolve;
+            selectionVideo.onerror = reject;
+        });
+
+        await new Promise((resolve) => {
+            selectionVideo.oncanplaythrough = resolve;
+            selectionVideo.load();
+        });
+
+        // Go to first frame
+        selectionVideo.currentTime = 0;
+        await new Promise(resolve => {
+            selectionVideo.onseeked = resolve;
+        });
+
+        // Setup canvas for selection preview
+        selectionCanvas.width = selectionVideo.videoWidth;
+        selectionCanvas.height = selectionVideo.videoHeight;
+
+    } catch (error) {
+        console.error('❌ Failed to load video for selection:', error);
+        alert('Failed to load video. Please try with a different video.');
+        headtrackSection.style.display = 'none';
+        uploadSection.style.display = 'block';
+    }
+}
+
+/**
+ * Handle tap/click on selection video to select club head
+ */
+function handleClubSelection(event) {
+    const rect = selectionContainer.getBoundingClientRect();
+    const scaleX = selectionVideo.videoWidth / rect.width;
+    const scaleY = selectionVideo.videoHeight / rect.height;
+
+    // Get tap position in video coordinates
+    const x = (event.clientX - rect.left) * scaleX;
+    const y = (event.clientY - rect.top) * scaleY;
+
+    selectedClubPoint = { x, y };
+
+    // Show marker at tap position
+    const markerX = event.clientX - rect.left;
+    const markerY = event.clientY - rect.top;
+    selectionMarker.style.left = markerX + 'px';
+    selectionMarker.style.top = markerY + 'px';
+    selectionMarker.style.display = 'block';
+
+    // Extract template from current frame
+    extractTemplate(x, y);
+
+    // Enable confirm button
+    confirmSelectionBtn.disabled = false;
+
+    console.log(`📍 Club head selected at (${Math.round(x)}, ${Math.round(y)})`);
+}
+
+/**
+ * Extract template image around the selected point
+ */
+function extractTemplate(x, y) {
+    const canvas = document.createElement('canvas');
+    canvas.width = selectionVideo.videoWidth;
+    canvas.height = selectionVideo.videoHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    ctx.drawImage(selectionVideo, 0, 0);
+
+    // Extract template region around the point
+    const halfSize = TEMPLATE_SIZE / 2;
+    const startX = Math.max(0, Math.round(x - halfSize));
+    const startY = Math.max(0, Math.round(y - halfSize));
+
+    clubTemplate = ctx.getImageData(startX, startY, TEMPLATE_SIZE, TEMPLATE_SIZE);
+    console.log('📋 Template extracted');
+}
+
+/**
+ * Start tracking after user confirms selection
+ */
+async function startClubTracking() {
+    if (!selectedClubPoint || !clubTemplate) {
+        alert('Please tap on the club head first.');
+        return;
+    }
+
+    console.log('🏌️ Starting club path tracking...');
+
+    // Hide selection, show processing
+    headtrackSelectClub.style.display = 'none';
+    headtrackProcessing.style.display = 'block';
     headtrackProgress.style.width = '0%';
     headtrackProgressText.textContent = '0% - Loading video...';
 
     try {
-        // Load the video
+        // Load video for tracking
         headtrackVideo.src = uploadedVideoUrl;
 
         await new Promise((resolve, reject) => {
@@ -1474,11 +1590,11 @@ async function analyzeUploadedVideo() {
             headtrackVideo.load();
         });
 
-        headtrackProgressText.textContent = '20% - Tracing club path...';
-        headtrackProgress.style.width = '20%';
+        headtrackProgressText.textContent = '10% - Tracking club head...';
+        headtrackProgress.style.width = '10%';
 
-        // Process video frames to track club path via motion detection
-        await processVideoForClubTracking();
+        // Track the club head through frames using template matching
+        await trackClubWithTemplate();
 
         // Show results
         headtrackProcessing.style.display = 'none';
@@ -1487,18 +1603,168 @@ async function analyzeUploadedVideo() {
         // Setup canvas
         setupHeadtrackCanvas();
 
-        // Calculate and display statistics
+        // Calculate stats
         calculateClubStats();
 
-        // Start playback
+        // Start at beginning
         headtrackVideo.currentTime = 0;
 
     } catch (error) {
-        console.error('❌ Club tracking analysis failed:', error);
-        alert('Club tracking analysis failed. Please try with a different video.');
-        headtrackSection.style.display = 'none';
-        uploadSection.style.display = 'block';
+        console.error('❌ Club tracking failed:', error);
+        alert('Club tracking failed. Try selecting a different point on the club.');
+        headtrackProcessing.style.display = 'none';
+        headtrackSelectClub.style.display = 'block';
     }
+}
+
+/**
+ * Track club head through video using template matching
+ */
+async function trackClubWithTemplate() {
+    const video = headtrackVideo;
+    const duration = video.duration;
+    const fps = 30;
+    const totalFrames = Math.floor(duration * fps);
+
+    headPositions = [];
+
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    // Start from the initially selected point
+    let currentX = selectedClubPoint.x;
+    let currentY = selectedClubPoint.y;
+    const searchRadius = 60; // Search area around last known position
+
+    for (let i = 0; i <= totalFrames; i++) {
+        const time = (i / fps);
+        video.currentTime = time;
+
+        await new Promise(resolve => {
+            const onSeeked = () => {
+                video.removeEventListener('seeked', onSeeked);
+                resolve();
+            };
+            video.addEventListener('seeked', onSeeked);
+        });
+
+        ctx.drawImage(video, 0, 0);
+
+        // Search for template around last known position
+        const match = findTemplateMatch(ctx, currentX, currentY, searchRadius);
+
+        if (match) {
+            currentX = match.x;
+            currentY = match.y;
+            headPositions.push({
+                time: time,
+                x: match.x,
+                y: match.y,
+                confidence: match.confidence,
+                detected: true
+            });
+        } else {
+            // Template not found - use last position
+            headPositions.push({
+                time: time,
+                x: currentX,
+                y: currentY,
+                confidence: 0,
+                detected: false
+            });
+        }
+
+        // Update progress
+        const progress = 10 + (i / totalFrames) * 85;
+        headtrackProgress.style.width = `${progress}%`;
+        headtrackProgressText.textContent = `${Math.round(progress)}% - Frame ${i + 1}/${totalFrames + 1}`;
+    }
+
+    headtrackProgress.style.width = '100%';
+    headtrackProgressText.textContent = '100% - Complete!';
+
+    console.log(`✅ Tracked ${headPositions.length} frames`);
+}
+
+/**
+ * Find template match in a search area around the given position
+ */
+function findTemplateMatch(ctx, centerX, centerY, searchRadius) {
+    const width = ctx.canvas.width;
+    const height = ctx.canvas.height;
+    const halfTemplate = TEMPLATE_SIZE / 2;
+
+    let bestMatch = null;
+    let bestScore = Infinity;
+
+    // Search in a grid around the center position
+    const step = 4; // Check every 4 pixels for speed
+    for (let dy = -searchRadius; dy <= searchRadius; dy += step) {
+        for (let dx = -searchRadius; dx <= searchRadius; dx += step) {
+            const testX = Math.round(centerX + dx);
+            const testY = Math.round(centerY + dy);
+
+            // Check bounds
+            if (testX - halfTemplate < 0 || testX + halfTemplate > width ||
+                testY - halfTemplate < 0 || testY + halfTemplate > height) {
+                continue;
+            }
+
+            // Get image data at this position
+            const testData = ctx.getImageData(
+                testX - halfTemplate,
+                testY - halfTemplate,
+                TEMPLATE_SIZE,
+                TEMPLATE_SIZE
+            );
+
+            // Calculate sum of squared differences
+            const score = calculateSSD(clubTemplate, testData);
+
+            if (score < bestScore) {
+                bestScore = score;
+                bestMatch = { x: testX, y: testY, confidence: 1 - (score / 1000000) };
+            }
+        }
+    }
+
+    // Only return match if confidence is good enough
+    if (bestMatch && bestMatch.confidence > 0.3) {
+        return bestMatch;
+    }
+
+    return null;
+}
+
+/**
+ * Calculate Sum of Squared Differences between two image patches
+ */
+function calculateSSD(template, test) {
+    let ssd = 0;
+    const data1 = template.data;
+    const data2 = test.data;
+
+    for (let i = 0; i < data1.length; i += 4) {
+        // Compare grayscale values
+        const gray1 = (data1[i] + data1[i + 1] + data1[i + 2]) / 3;
+        const gray2 = (data2[i] + data2[i + 1] + data2[i + 2]) / 3;
+        const diff = gray1 - gray2;
+        ssd += diff * diff;
+    }
+
+    return ssd;
+}
+
+/**
+ * Cancel selection and go back
+ */
+function cancelClubSelection() {
+    headtrackSection.style.display = 'none';
+    uploadSection.style.display = 'block';
+    selectedClubPoint = null;
+    clubTemplate = null;
 }
 
 /**
@@ -1517,8 +1783,11 @@ function backFromHeadtrackToUpload() {
     // Stop video and cleanup
     headtrackVideo.pause();
     headtrackVideo.src = '';
+    if (selectionVideo) selectionVideo.src = '';
     isHeadtrackPlaying = false;
     headPositions = [];
+    selectedClubPoint = null;
+    clubTemplate = null;
 }
 
 // Helper function to safely add event listeners
@@ -1555,6 +1824,18 @@ try {
     addClickListener(headtrackBackBtn, backFromHeadtrackToUpload, 'headtrack-back-btn');
     if (headtrackShowTrace) headtrackShowTrace.addEventListener('change', drawHeadtrackOverlay);
     if (headtrackShowBox) headtrackShowBox.addEventListener('change', drawHeadtrackOverlay);
+
+    // Club selection event listeners
+    if (selectionContainer) {
+        selectionContainer.addEventListener('click', handleClubSelection);
+        selectionContainer.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            const touch = e.changedTouches[0];
+            handleClubSelection({ clientX: touch.clientX, clientY: touch.clientY });
+        });
+    }
+    addClickListener(confirmSelectionBtn, startClubTracking, 'confirm-selection-btn');
+    addClickListener(cancelSelectionBtn, cancelClubSelection, 'cancel-selection-btn');
 
     // Start section event listeners - CRITICAL for initial user interaction
     addClickListener(startRecordBtn, showRecordingMode, 'start-record-btn');
