@@ -1470,65 +1470,85 @@ function backFromHeadtrackToUpload() {
     headPositions = [];
 }
 
-// Event Listeners
-startBtn.addEventListener('click', startRecording);
-stopBtn.addEventListener('click', stopRecording);
-newSessionBtn.addEventListener('click', startNewSession);
-
-// Mode selection event listeners
-sideBySideModeBtn.addEventListener('click', () => showClipSelection('sidebyside'));
-overlayModeBtn.addEventListener('click', () => showClipSelection('overlay'));
-positionModeBtn.addEventListener('click', () => showClipSelection('position'));
-headtrackModeBtn.addEventListener('click', showHeadTrackingMode);
-
-// Clip selection and comparison event listeners
-createComparisonBtn.addEventListener('click', createComparison);
-backToResultsBtn.addEventListener('click', backToResults);
-backToClipsBtn.addEventListener('click', backToClips);
-downloadResultBtn.addEventListener('click', downloadResult);
-
-// Head tracking event listeners
-headtrackPlayBtn.addEventListener('click', toggleHeadtrackPlayback);
-headtrackResetBtn.addEventListener('click', resetHeadtrackVideo);
-headtrackBackBtn.addEventListener('click', backFromHeadtrackToUpload);
-headtrackShowTrace.addEventListener('change', drawHeadtrackOverlay);
-headtrackShowBox.addEventListener('change', drawHeadtrackOverlay);
-
-// Start section event listeners
-startRecordBtn.addEventListener('click', showRecordingMode);
-startUploadBtn.addEventListener('click', showUploadMode);
-backToStartBtn.addEventListener('click', showStartSection);
-uploadBackToStartBtn.addEventListener('click', showStartSection);
-
-// Upload event listeners
-analyzeUploadBtn.addEventListener('click', analyzeUploadedVideo);
-clearUploadBtn.addEventListener('click', clearUpload);
-
-// File upload handling - input overlays the upload area for iOS compatibility
-videoUpload.addEventListener('change', (e) => {
-    if (e.target.files.length > 0) {
-        handleFileSelect(e.target.files[0]);
+// Helper function to safely add event listeners
+function addClickListener(element, handler, name) {
+    if (element) {
+        element.addEventListener('click', handler);
+    } else {
+        console.error(`Element not found: ${name}`);
     }
-});
+}
 
-// Drag and drop handling
-uploadArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    uploadArea.classList.add('drag-over');
-});
+// Event Listeners - wrapped for safety
+try {
+    // Recording controls
+    addClickListener(startBtn, startRecording, 'start-btn');
+    addClickListener(stopBtn, stopRecording, 'stop-btn');
+    addClickListener(newSessionBtn, startNewSession, 'new-session-btn');
 
-uploadArea.addEventListener('dragleave', (e) => {
-    e.preventDefault();
-    uploadArea.classList.remove('drag-over');
-});
+    // Mode selection event listeners
+    addClickListener(sideBySideModeBtn, () => showClipSelection('sidebyside'), 'sidebyside-mode-btn');
+    addClickListener(overlayModeBtn, () => showClipSelection('overlay'), 'overlay-mode-btn');
+    addClickListener(positionModeBtn, () => showClipSelection('position'), 'position-mode-btn');
+    addClickListener(headtrackModeBtn, showHeadTrackingMode, 'headtrack-mode-btn');
 
-uploadArea.addEventListener('drop', (e) => {
-    e.preventDefault();
-    uploadArea.classList.remove('drag-over');
-    if (e.dataTransfer.files.length > 0) {
-        handleFileSelect(e.dataTransfer.files[0]);
+    // Clip selection and comparison event listeners
+    addClickListener(createComparisonBtn, createComparison, 'create-comparison-btn');
+    addClickListener(backToResultsBtn, backToResults, 'back-to-results-btn');
+    addClickListener(backToClipsBtn, backToClips, 'back-to-clips-btn');
+    addClickListener(downloadResultBtn, downloadResult, 'download-result-btn');
+
+    // Head tracking event listeners
+    addClickListener(headtrackPlayBtn, toggleHeadtrackPlayback, 'headtrack-play-btn');
+    addClickListener(headtrackResetBtn, resetHeadtrackVideo, 'headtrack-reset-btn');
+    addClickListener(headtrackBackBtn, backFromHeadtrackToUpload, 'headtrack-back-btn');
+    if (headtrackShowTrace) headtrackShowTrace.addEventListener('change', drawHeadtrackOverlay);
+    if (headtrackShowBox) headtrackShowBox.addEventListener('change', drawHeadtrackOverlay);
+
+    // Start section event listeners - CRITICAL for initial user interaction
+    addClickListener(startRecordBtn, showRecordingMode, 'start-record-btn');
+    addClickListener(startUploadBtn, showUploadMode, 'start-upload-btn');
+    addClickListener(backToStartBtn, showStartSection, 'back-to-start-btn');
+    addClickListener(uploadBackToStartBtn, showStartSection, 'upload-back-to-start-btn');
+
+    // Upload event listeners
+    addClickListener(analyzeUploadBtn, analyzeUploadedVideo, 'analyze-upload-btn');
+    addClickListener(clearUploadBtn, clearUpload, 'clear-upload-btn');
+
+    // File upload handling - input overlays the upload area for iOS compatibility
+    if (videoUpload) {
+        videoUpload.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFileSelect(e.target.files[0]);
+            }
+        });
     }
-});
+
+    // Drag and drop handling
+    if (uploadArea) {
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('drag-over');
+        });
+
+        uploadArea.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+        });
+
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('drag-over');
+            if (e.dataTransfer.files.length > 0) {
+                handleFileSelect(e.dataTransfer.files[0]);
+            }
+        });
+    }
+
+    console.log('✅ All event listeners registered successfully');
+} catch (error) {
+    console.error('❌ Error setting up event listeners:', error);
+}
 
 // Initialize on page load
 window.addEventListener('load', init);
