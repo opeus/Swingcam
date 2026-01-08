@@ -859,24 +859,11 @@ function backToResults() {
 }
 
 /**
- * Initialize TensorFlow.js Face Detection Model
+ * No model needed for club tracking - uses motion detection
  */
 async function initFaceDetector() {
-    if (faceDetector) return faceDetector;
-
-    console.log('🎯 Loading face detection model...');
-    try {
-        const model = faceDetection.SupportedModels.MediaPipeFaceDetector;
-        faceDetector = await faceDetection.createDetector(model, {
-            runtime: 'tfjs',
-            modelType: 'short'
-        });
-        console.log('✅ Face detection model loaded!');
-        return faceDetector;
-    } catch (error) {
-        console.error('❌ Failed to load face detection model:', error);
-        throw error;
-    }
+    console.log('🏌️ Club tracking ready - using motion detection');
+    return true;
 }
 
 /**
@@ -925,24 +912,19 @@ function showHeadTrackingMode() {
 }
 
 /**
- * Analyze head tracking for a selected clip
+ * Analyze club head tracking for a selected clip
  */
 async function analyzeHeadTracking(clipData) {
-    console.log('🎯 Starting head tracking analysis for:', clipData.label);
+    console.log('🏌️ Starting club path analysis for:', clipData.label);
 
     // Show processing state
     headtrackClipSelection.style.display = 'none';
     headtrackProcessing.style.display = 'block';
     headtrackResults.style.display = 'none';
     headtrackProgress.style.width = '0%';
-    headtrackProgressText.textContent = '0% - Loading model...';
+    headtrackProgressText.textContent = '0% - Loading video...';
 
     try {
-        // Initialize face detector
-        await initFaceDetector();
-        headtrackProgressText.textContent = '10% - Loading video...';
-        headtrackProgress.style.width = '10%';
-
         // Load the video
         const videoUrl = clipData.url;
         headtrackVideo.src = videoUrl;
@@ -960,8 +942,8 @@ async function analyzeHeadTracking(clipData) {
         headtrackProgressText.textContent = '20% - Analyzing frames...';
         headtrackProgress.style.width = '20%';
 
-        // Process video frames to detect head positions
-        await processVideoForHeadTracking();
+        // Process video frames to detect club positions via motion
+        await processVideoForClubTracking();
 
         // Show results
         headtrackProcessing.style.display = 'none';
@@ -971,41 +953,47 @@ async function analyzeHeadTracking(clipData) {
         setupHeadtrackCanvas();
 
         // Calculate and display statistics
-        calculateHeadtrackStats();
+        calculateClubStats();
 
         // Start playback
         headtrackVideo.currentTime = 0;
 
     } catch (error) {
-        console.error('❌ Head tracking analysis failed:', error);
-        alert('Head tracking analysis failed. Make sure your face is visible in the video.');
+        console.error('❌ Club tracking analysis failed:', error);
+        alert('Club tracking analysis failed. Please try with a different video.');
         headtrackProcessing.style.display = 'none';
         headtrackClipSelection.style.display = 'block';
     }
 }
 
 /**
- * Process video frames to extract head positions
+ * Process video frames to track club head via motion detection
  */
-async function processVideoForHeadTracking() {
+async function processVideoForClubTracking() {
     const video = headtrackVideo;
     const duration = video.duration;
-    const fps = 15; // Sample at 15 fps for performance
+    const fps = 30; // Higher fps for smoother club tracking
     const totalFrames = Math.floor(duration * fps);
 
     headPositions = [];
 
-    // Create off-screen canvas for frame extraction
-    const offscreenCanvas = document.createElement('canvas');
-    offscreenCanvas.width = video.videoWidth;
-    offscreenCanvas.height = video.videoHeight;
-    const ctx = offscreenCanvas.getContext('2d');
+    // Create off-screen canvases for frame comparison
+    const canvas1 = document.createElement('canvas');
+    const canvas2 = document.createElement('canvas');
+    canvas1.width = video.videoWidth;
+    canvas1.height = video.videoHeight;
+    canvas2.width = video.videoWidth;
+    canvas2.height = video.videoHeight;
+    const ctx1 = canvas1.getContext('2d', { willReadFrequently: true });
+    const ctx2 = canvas2.getContext('2d', { willReadFrequently: true });
+
+    let prevImageData = null;
 
     for (let i = 0; i <= totalFrames; i++) {
         const time = (i / fps);
         video.currentTime = time;
 
-        // Wait for the video to seek to the new time
+        // Wait for the video to seek
         await new Promise(resolve => {
             const onSeeked = () => {
                 video.removeEventListener('seeked', onSeeked);
@@ -1014,65 +1002,154 @@ async function processVideoForHeadTracking() {
             video.addEventListener('seeked', onSeeked);
         });
 
-        // Draw frame to canvas
-        ctx.drawImage(video, 0, 0);
+        // Draw current frame
+        ctx1.drawImage(video, 0, 0);
+        const currentImageData = ctx1.getImageData(0, 0, canvas1.width, canvas1.height);
 
-        // Detect faces
-        try {
-            const faces = await faceDetector.estimateFaces(offscreenCanvas);
+        if (prevImageData) {
+            // Find the point of maximum motion (club head)
+            const motionPoint = findMaxMotionPoint(prevImageData, currentImageData, canvas1.width, canvas1.height);
 
-            if (faces.length > 0) {
-                const face = faces[0];
-                const box = face.box;
-
-                // Calculate center of face/head
-                const centerX = box.xMin + box.width / 2;
-                const centerY = box.yMin + box.height / 2;
-
+            if (motionPoint) {
                 headPositions.push({
                     time: time,
-                    x: centerX,
-                    y: centerY,
-                    width: box.width,
-                    height: box.height,
+                    x: motionPoint.x,
+                    y: motionPoint.y,
+                    speed: motionPoint.speed,
                     detected: true
                 });
             } else {
-                // No face detected - interpolate or mark as missing
                 headPositions.push({
                     time: time,
                     x: null,
                     y: null,
-                    width: null,
-                    height: null,
+                    speed: 0,
                     detected: false
                 });
             }
-        } catch (error) {
-            console.warn(`Frame ${i} detection error:`, error);
+        } else {
+            // First frame - no motion yet
             headPositions.push({
                 time: time,
                 x: null,
                 y: null,
-                width: null,
-                height: null,
+                speed: 0,
                 detected: false
             });
         }
 
+        // Store current frame for next comparison
+        prevImageData = currentImageData;
+
         // Update progress
         const progress = 20 + (i / totalFrames) * 75;
         headtrackProgress.style.width = `${progress}%`;
-        headtrackProgressText.textContent = `${Math.round(progress)}% - Analyzing frame ${i + 1}/${totalFrames + 1}`;
+        headtrackProgressText.textContent = `${Math.round(progress)}% - Tracking frame ${i + 1}/${totalFrames + 1}`;
     }
 
-    // Interpolate missing positions
-    interpolateMissingPositions();
+    // Smooth the positions
+    smoothClubPositions();
 
     headtrackProgress.style.width = '100%';
     headtrackProgressText.textContent = '100% - Complete!';
 
-    console.log(`✅ Processed ${headPositions.length} frames, detected ${headPositions.filter(p => p.detected).length} faces`);
+    console.log(`✅ Processed ${headPositions.length} frames, tracked ${headPositions.filter(p => p.detected).length} positions`);
+}
+
+/**
+ * Find the point of maximum motion between two frames
+ */
+function findMaxMotionPoint(prevData, currData, width, height) {
+    const blockSize = 16; // Analyze in blocks for efficiency
+    const threshold = 30; // Minimum difference to count as motion
+
+    let maxMotion = 0;
+    let maxX = 0;
+    let maxY = 0;
+
+    // Scan the frame in blocks
+    for (let y = 0; y < height; y += blockSize) {
+        for (let x = 0; x < width; x += blockSize) {
+            let blockMotion = 0;
+            let motionPixels = 0;
+            let sumX = 0;
+            let sumY = 0;
+
+            // Analyze each pixel in the block
+            for (let by = 0; by < blockSize && y + by < height; by++) {
+                for (let bx = 0; bx < blockSize && x + bx < width; bx++) {
+                    const px = x + bx;
+                    const py = y + by;
+                    const idx = (py * width + px) * 4;
+
+                    // Calculate grayscale difference
+                    const prevGray = (prevData.data[idx] + prevData.data[idx + 1] + prevData.data[idx + 2]) / 3;
+                    const currGray = (currData.data[idx] + currData.data[idx + 1] + currData.data[idx + 2]) / 3;
+                    const diff = Math.abs(currGray - prevGray);
+
+                    if (diff > threshold) {
+                        blockMotion += diff;
+                        motionPixels++;
+                        sumX += px;
+                        sumY += py;
+                    }
+                }
+            }
+
+            if (blockMotion > maxMotion) {
+                maxMotion = blockMotion;
+                // Use centroid of motion within the block
+                if (motionPixels > 0) {
+                    maxX = sumX / motionPixels;
+                    maxY = sumY / motionPixels;
+                }
+            }
+        }
+    }
+
+    // Return null if no significant motion detected
+    if (maxMotion < threshold * blockSize) {
+        return null;
+    }
+
+    return { x: maxX, y: maxY, speed: maxMotion };
+}
+
+/**
+ * Smooth club positions to reduce noise
+ */
+function smoothClubPositions() {
+    const windowSize = 3;
+    const smoothed = [];
+
+    for (let i = 0; i < headPositions.length; i++) {
+        if (!headPositions[i].detected) {
+            smoothed.push(headPositions[i]);
+            continue;
+        }
+
+        let sumX = 0, sumY = 0, count = 0;
+
+        for (let j = Math.max(0, i - windowSize); j <= Math.min(headPositions.length - 1, i + windowSize); j++) {
+            if (headPositions[j].detected && headPositions[j].x !== null) {
+                sumX += headPositions[j].x;
+                sumY += headPositions[j].y;
+                count++;
+            }
+        }
+
+        if (count > 0) {
+            smoothed.push({
+                ...headPositions[i],
+                x: sumX / count,
+                y: sumY / count
+            });
+        } else {
+            smoothed.push(headPositions[i]);
+        }
+    }
+
+    headPositions = smoothed;
 }
 
 /**
@@ -1135,7 +1212,7 @@ function setupHeadtrackCanvas() {
 }
 
 /**
- * Draw head tracking overlay on canvas
+ * Draw club path overlay on canvas
  */
 function drawHeadtrackOverlay() {
     const video = headtrackVideo;
@@ -1156,83 +1233,71 @@ function drawHeadtrackOverlay() {
 
     if (currentPositions.length === 0) return;
 
-    // Draw trace (path of head movement)
+    // Draw club path trace with gradient color based on speed
     if (showTrace && currentPositions.length > 1) {
-        ctx.beginPath();
-        ctx.strokeStyle = 'rgba(124, 58, 237, 0.8)';
-        ctx.lineWidth = 3;
-        ctx.lineCap = 'round';
-        ctx.lineJoin = 'round';
-
-        // Create gradient along the path
-        ctx.moveTo(currentPositions[0].x, currentPositions[0].y);
-
+        // Draw path segments with speed-based coloring
         for (let i = 1; i < currentPositions.length; i++) {
-            ctx.lineTo(currentPositions[i].x, currentPositions[i].y);
+            const prev = currentPositions[i - 1];
+            const curr = currentPositions[i];
+
+            // Color based on speed (green = slow, yellow = medium, red = fast)
+            const speed = curr.speed || 0;
+            const maxSpeed = Math.max(...currentPositions.map(p => p.speed || 0));
+            const speedRatio = maxSpeed > 0 ? speed / maxSpeed : 0;
+
+            // Gradient from cyan to magenta based on speed
+            const r = Math.round(255 * speedRatio);
+            const g = Math.round(255 * (1 - speedRatio * 0.5));
+            const b = 255;
+
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, 0.9)`;
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.moveTo(prev.x, prev.y);
+            ctx.lineTo(curr.x, curr.y);
+            ctx.stroke();
         }
 
-        ctx.stroke();
-
-        // Draw dots at key positions
-        for (let i = 0; i < currentPositions.length; i += Math.max(1, Math.floor(currentPositions.length / 10))) {
+        // Draw dots at regular intervals
+        for (let i = 0; i < currentPositions.length; i += Math.max(1, Math.floor(currentPositions.length / 15))) {
             const pos = currentPositions[i];
             ctx.beginPath();
-            ctx.fillStyle = `rgba(124, 58, 237, ${0.5 + (i / currentPositions.length) * 0.5})`;
-            ctx.arc(pos.x, pos.y, 4, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffffff';
+            ctx.arc(pos.x, pos.y, 3, 0, Math.PI * 2);
             ctx.fill();
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1;
+            ctx.stroke();
         }
     }
 
-    // Draw current head position box
+    // Draw current club head position
     if (showBox && currentPositions.length > 0) {
         const current = currentPositions[currentPositions.length - 1];
 
-        // Draw bounding box
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([5, 5]);
-        ctx.strokeRect(
-            current.x - current.width / 2,
-            current.y - current.height / 2,
-            current.width,
-            current.height
-        );
-        ctx.setLineDash([]);
-
-        // Draw center crosshair
+        // Draw glowing circle at current position
         ctx.beginPath();
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 2;
-        const crossSize = 10;
-        ctx.moveTo(current.x - crossSize, current.y);
-        ctx.lineTo(current.x + crossSize, current.y);
-        ctx.moveTo(current.x, current.y - crossSize);
-        ctx.lineTo(current.x, current.y + crossSize);
-        ctx.stroke();
-    }
+        ctx.fillStyle = 'rgba(16, 185, 129, 0.3)';
+        ctx.arc(current.x, current.y, 20, 0, Math.PI * 2);
+        ctx.fill();
 
-    // Draw starting position reference
-    if (showTrace && headPositions.length > 0 && headPositions[0].x !== null) {
-        const start = headPositions[0];
         ctx.beginPath();
-        ctx.strokeStyle = 'rgba(37, 99, 235, 0.6)';
-        ctx.lineWidth = 2;
-        ctx.setLineDash([3, 3]);
-        ctx.arc(start.x, start.y, 15, 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
+        ctx.fillStyle = '#10b981';
+        ctx.arc(current.x, current.y, 8, 0, Math.PI * 2);
+        ctx.fill();
 
-        // Label
-        ctx.font = '12px sans-serif';
-        ctx.fillStyle = 'rgba(37, 99, 235, 0.8)';
-        ctx.fillText('START', start.x + 20, start.y + 5);
+        ctx.beginPath();
+        ctx.fillStyle = '#ffffff';
+        ctx.arc(current.x, current.y, 4, 0, Math.PI * 2);
+        ctx.fill();
     }
 }
 
 /**
- * Calculate and display head tracking statistics
+ * Calculate and display club swing statistics
  */
-function calculateHeadtrackStats() {
+function calculateClubStats() {
     const validPositions = headPositions.filter(p => p.x !== null);
 
     if (validPositions.length < 2) {
@@ -1242,49 +1307,48 @@ function calculateHeadtrackStats() {
         return;
     }
 
-    // Calculate total movement (sum of distances between consecutive positions)
-    let totalMovement = 0;
+    // Calculate total arc length (sum of distances between consecutive positions)
+    let totalArc = 0;
     for (let i = 1; i < validPositions.length; i++) {
         const dx = validPositions[i].x - validPositions[i - 1].x;
         const dy = validPositions[i].y - validPositions[i - 1].y;
-        totalMovement += Math.sqrt(dx * dx + dy * dy);
+        totalArc += Math.sqrt(dx * dx + dy * dy);
     }
 
-    // Calculate max deviation from starting position
-    const startX = validPositions[0].x;
-    const startY = validPositions[0].y;
-    let maxDeviation = 0;
+    // Find max speed
+    const maxSpeed = Math.max(...validPositions.map(p => p.speed || 0));
 
-    for (const pos of validPositions) {
-        const deviation = Math.sqrt((pos.x - startX) ** 2 + (pos.y - startY) ** 2);
-        if (deviation > maxDeviation) maxDeviation = deviation;
+    // Calculate path smoothness (lower variation = smoother)
+    // Using angle changes between segments
+    let angleChanges = 0;
+    for (let i = 2; i < validPositions.length; i++) {
+        const dx1 = validPositions[i - 1].x - validPositions[i - 2].x;
+        const dy1 = validPositions[i - 1].y - validPositions[i - 2].y;
+        const dx2 = validPositions[i].x - validPositions[i - 1].x;
+        const dy2 = validPositions[i].y - validPositions[i - 1].y;
+
+        const angle1 = Math.atan2(dy1, dx1);
+        const angle2 = Math.atan2(dy2, dx2);
+        let angleDiff = Math.abs(angle2 - angle1);
+        if (angleDiff > Math.PI) angleDiff = 2 * Math.PI - angleDiff;
+
+        angleChanges += angleDiff;
     }
 
-    // Calculate stability score (inverse of standard deviation of positions)
-    const avgX = validPositions.reduce((sum, p) => sum + p.x, 0) / validPositions.length;
-    const avgY = validPositions.reduce((sum, p) => sum + p.y, 0) / validPositions.length;
+    // Convert to smoothness score (0-100, higher = smoother)
+    const avgAngleChange = angleChanges / Math.max(1, validPositions.length - 2);
+    const smoothnessScore = Math.max(0, Math.min(100, Math.round(100 * (1 - avgAngleChange / Math.PI))));
 
-    let variance = 0;
-    for (const pos of validPositions) {
-        variance += (pos.x - avgX) ** 2 + (pos.y - avgY) ** 2;
-    }
-    const stdDev = Math.sqrt(variance / validPositions.length);
-
-    // Convert to a 0-100 stability score (higher is better)
-    // Using video width as reference for normalization
+    // Display stats
     const videoWidth = headtrackVideo.videoWidth;
-    const normalizedStdDev = stdDev / videoWidth;
-    const stabilityScore = Math.max(0, Math.min(100, Math.round(100 * (1 - normalizedStdDev * 10))));
+    statTotalMovement.textContent = `${Math.round(totalArc)}px`;
+    statMaxDeviation.textContent = `${Math.round(maxSpeed / 100)}`;
+    statStability.textContent = `${smoothnessScore}/100`;
 
-    // Display stats (convert pixel values to relative percentages of video width for display)
-    statTotalMovement.textContent = `${Math.round(totalMovement / videoWidth * 100)}%`;
-    statMaxDeviation.textContent = `${Math.round(maxDeviation / videoWidth * 100)}%`;
-    statStability.textContent = `${stabilityScore}/100`;
-
-    // Color code stability
-    if (stabilityScore >= 80) {
+    // Color code smoothness
+    if (smoothnessScore >= 80) {
         statStability.style.color = '#10b981'; // Green - excellent
-    } else if (stabilityScore >= 60) {
+    } else if (smoothnessScore >= 60) {
         statStability.style.color = '#f59e0b'; // Orange - good
     } else {
         statStability.style.color = '#ef4444'; // Red - needs work
@@ -1383,17 +1447,9 @@ async function analyzeUploadedVideo() {
         return;
     }
 
-    console.log('🎯 Starting head tracking analysis for uploaded video');
+    console.log('🏌️ Starting club path analysis for uploaded video');
 
-    // Create a fake clip data object for the uploaded video
-    const clipData = {
-        url: uploadedVideoUrl,
-        label: uploadedVideoFile.name || 'Uploaded Video',
-        timestamp: 0,
-        isUploaded: true
-    };
-
-    // Show head tracking section directly (skip results section)
+    // Show club tracking section directly (skip results section)
     uploadSection.style.display = 'none';
     headtrackSection.style.display = 'block';
 
@@ -1402,14 +1458,9 @@ async function analyzeUploadedVideo() {
     headtrackProcessing.style.display = 'block';
     headtrackResults.style.display = 'none';
     headtrackProgress.style.width = '0%';
-    headtrackProgressText.textContent = '0% - Loading model...';
+    headtrackProgressText.textContent = '0% - Loading video...';
 
     try {
-        // Initialize face detector
-        await initFaceDetector();
-        headtrackProgressText.textContent = '10% - Loading video...';
-        headtrackProgress.style.width = '10%';
-
         // Load the video
         headtrackVideo.src = uploadedVideoUrl;
 
@@ -1423,11 +1474,11 @@ async function analyzeUploadedVideo() {
             headtrackVideo.load();
         });
 
-        headtrackProgressText.textContent = '20% - Analyzing frames...';
+        headtrackProgressText.textContent = '20% - Tracing club path...';
         headtrackProgress.style.width = '20%';
 
-        // Process video frames to detect head positions
-        await processVideoForHeadTracking();
+        // Process video frames to track club path via motion detection
+        await processVideoForClubTracking();
 
         // Show results
         headtrackProcessing.style.display = 'none';
@@ -1437,14 +1488,14 @@ async function analyzeUploadedVideo() {
         setupHeadtrackCanvas();
 
         // Calculate and display statistics
-        calculateHeadtrackStats();
+        calculateClubStats();
 
         // Start playback
         headtrackVideo.currentTime = 0;
 
     } catch (error) {
-        console.error('❌ Head tracking analysis failed:', error);
-        alert('Head tracking analysis failed. Make sure a face is visible in the video.');
+        console.error('❌ Club tracking analysis failed:', error);
+        alert('Club tracking analysis failed. Please try with a different video.');
         headtrackSection.style.display = 'none';
         uploadSection.style.display = 'block';
     }

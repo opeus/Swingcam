@@ -34,7 +34,7 @@
                     <button id="start-upload-btn" class="start-option-btn start-option-highlight">
                         <span class="start-option-icon">📤</span>
                         <h3>Upload Video</h3>
-                        <p>Upload an existing video to analyze head movement through your swing.</p>
+                        <p>Upload an existing video to trace your club head path through the swing.</p>
                     </button>
                 </div>
             </section>
@@ -99,7 +99,7 @@
                     </div>
                     <div class="controls">
                         <button id="analyze-upload-btn" class="btn btn-primary">
-                            <span class="icon">🎯</span> Analyze Head Movement
+                            <span class="icon">🏌️</span> Trace Club Path
                         </button>
                         <button id="clear-upload-btn" class="btn btn-secondary">
                             <span class="icon">🗑️</span> Clear
@@ -203,13 +203,13 @@
                 </div>
             </section>
 
-            <!-- Head Tracking Section -->
+            <!-- Club Head Tracking Section -->
             <section id="headtrack-section" class="card" style="display: none;">
-                <h2>🎯 Head Tracking Analysis</h2>
+                <h2>🏌️ Club Path Analysis</h2>
 
-                <!-- Clip Selection for Head Tracking -->
+                <!-- Clip Selection for Club Tracking -->
                 <div id="headtrack-clip-selection">
-                    <p class="headtrack-instruction">Select a swing clip to analyze head movement</p>
+                    <p class="headtrack-instruction">Select a swing clip to trace the club path</p>
                     <div class="clips-grid" id="headtrack-clips-grid">
                         <!-- Clips will be inserted here -->
                     </div>
@@ -218,7 +218,7 @@
                 <!-- Processing indicator -->
                 <div id="headtrack-processing" style="display: none;">
                     <div class="loader"></div>
-                    <p class="processing-text">Analyzing head movement... This may take a moment.</p>
+                    <p class="processing-text">Tracing club path... This may take a moment.</p>
                     <div class="progress-bar-container">
                         <div class="progress-bar" id="headtrack-progress"></div>
                     </div>
@@ -241,35 +241,35 @@
                         </button>
                         <label class="headtrack-toggle">
                             <input type="checkbox" id="headtrack-show-trace" checked>
-                            <span>Show Trace</span>
+                            <span>Show Club Path</span>
                         </label>
                         <label class="headtrack-toggle">
                             <input type="checkbox" id="headtrack-show-box" checked>
-                            <span>Show Head Box</span>
+                            <span>Show Club Head</span>
                         </label>
                     </div>
 
                     <div class="headtrack-stats">
                         <div class="stat-item">
-                            <span class="stat-label">Total Movement</span>
+                            <span class="stat-label">Swing Arc</span>
                             <span class="stat-value" id="stat-total-movement">--</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">Max Deviation</span>
+                            <span class="stat-label">Max Speed</span>
                             <span class="stat-value" id="stat-max-deviation">--</span>
                         </div>
                         <div class="stat-item">
-                            <span class="stat-label">Stability Score</span>
+                            <span class="stat-label">Path Smoothness</span>
                             <span class="stat-value" id="stat-stability">--</span>
                         </div>
                     </div>
 
-                    <p class="headtrack-tip">💡 Tip: A stable head during the swing is key to consistent ball contact. The trace shows your head movement path - aim for minimal vertical and horizontal drift.</p>
+                    <p class="headtrack-tip">💡 Tip: The trace shows your club head path through the swing. Look for a smooth, consistent arc for better ball contact.</p>
                 </div>
 
                 <div class="controls">
                     <button id="headtrack-back-btn" class="btn btn-secondary">
-                        <span class="icon">←</span> Back to All Clips
+                        <span class="icon">←</span> Back
                     </button>
                 </div>
             </section>
