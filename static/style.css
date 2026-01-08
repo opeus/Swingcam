@@ -709,3 +709,266 @@ footer a:hover {
         padding: 0.75rem;
     }
 }
+
+/* Input Mode Toggle */
+.input-mode-toggle {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+    background: var(--background);
+    padding: 0.25rem;
+    border-radius: 0.5rem;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.toggle-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: none;
+    background: transparent;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.toggle-btn:hover {
+    color: var(--text-primary);
+}
+
+.toggle-btn.active {
+    background: white;
+    color: var(--primary-color);
+    box-shadow: var(--shadow);
+}
+
+/* Upload Area */
+.upload-area {
+    border: 2px dashed var(--border-color);
+    border-radius: 0.75rem;
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    background: var(--background);
+    max-width: 500px;
+    margin: 0 auto;
+}
+
+.upload-area:hover,
+.upload-area.drag-over {
+    border-color: var(--primary-color);
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.upload-area.drag-over {
+    transform: scale(1.02);
+}
+
+.upload-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+
+.upload-text {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.upload-subtext {
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+}
+
+.upload-formats {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+#upload-preview-container .video-container {
+    max-width: 500px;
+    margin: 0 auto 1.5rem;
+}
+
+#upload-preview {
+    width: 100%;
+    border-radius: 0.5rem;
+}
+
+/* Head Tracking Styles */
+.mode-btn-highlight {
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    border-color: #7c3aed;
+    color: white;
+}
+
+.mode-btn-highlight h4,
+.mode-btn-highlight p {
+    color: white !important;
+}
+
+.mode-btn-highlight:hover {
+    border-color: #5b21b6;
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.4);
+}
+
+.headtrack-instruction {
+    text-align: center;
+    font-size: 1.125rem;
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.headtrack-video-container {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto 1.5rem;
+    background: #000;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+}
+
+#headtrack-video {
+    width: 100%;
+    display: block;
+}
+
+#headtrack-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.headtrack-controls {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+}
+
+.headtrack-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--background);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.headtrack-toggle:hover {
+    background: var(--border-color);
+}
+
+.headtrack-toggle input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary-color);
+}
+
+.headtrack-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    max-width: 600px;
+    margin: 0 auto 1.5rem;
+}
+
+.stat-item {
+    background: var(--background);
+    padding: 1rem;
+    border-radius: 0.5rem;
+    text-align: center;
+    border: 1px solid var(--border-color);
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.headtrack-tip {
+    max-width: 600px;
+    margin: 0 auto;
+    padding: 1rem;
+    background: linear-gradient(135deg, #eff6ff 0%, #f3e8ff 100%);
+    border-radius: 0.5rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-align: center;
+    border: 1px solid #c7d2fe;
+}
+
+/* Progress bar for head tracking */
+.progress-bar-container {
+    width: 100%;
+    max-width: 400px;
+    height: 8px;
+    background: var(--border-color);
+    border-radius: 4px;
+    margin: 1rem auto;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--primary-color), #7c3aed);
+    border-radius: 4px;
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+#headtrack-progress-text {
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Responsive adjustments for head tracking */
+@media (max-width: 768px) {
+    .headtrack-stats {
+        grid-template-columns: 1fr;
+    }
+
+    .headtrack-controls {
+        flex-direction: column;
+    }
+
+    .headtrack-toggle {
+        width: 100%;
+        justify-content: center;
+    }
+}

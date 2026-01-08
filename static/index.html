@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Swingcam - Analyze Your Swing</title>
     <link rel="stylesheet" href="/static/style.css">
+    <!-- TensorFlow.js for head tracking -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-detection@1.0.2/dist/face-detection.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -18,25 +21,63 @@
         <main>
             <!-- Recording Section -->
             <section id="recording-section" class="card">
-                <h2>Step 1: Record Your Swings</h2>
+                <h2>Step 1: Record or Upload Your Swings</h2>
 
-                <!-- Video Preview -->
-                <div class="video-container">
-                    <video id="preview" autoplay muted playsinline></video>
-                    <div id="audio-indicator" class="audio-indicator">
-                        <div class="pulse"></div>
-                        <span id="swing-count">0 swings detected</span>
+                <!-- Mode Toggle -->
+                <div class="input-mode-toggle">
+                    <button id="record-mode-btn" class="toggle-btn active">
+                        <span class="icon">🎥</span> Record
+                    </button>
+                    <button id="upload-mode-btn" class="toggle-btn">
+                        <span class="icon">📤</span> Upload Video
+                    </button>
+                </div>
+
+                <!-- Recording Mode -->
+                <div id="record-mode">
+                    <!-- Video Preview -->
+                    <div class="video-container">
+                        <video id="preview" autoplay muted playsinline></video>
+                        <div id="audio-indicator" class="audio-indicator">
+                            <div class="pulse"></div>
+                            <span id="swing-count">0 swings detected</span>
+                        </div>
+                    </div>
+
+                    <!-- Controls -->
+                    <div class="controls">
+                        <button id="start-btn" class="btn btn-primary">
+                            <span class="icon">⏺</span> Start Recording
+                        </button>
+                        <button id="stop-btn" class="btn btn-danger" disabled>
+                            <span class="icon">⏹</span> Stop Recording
+                        </button>
                     </div>
                 </div>
 
-                <!-- Controls -->
-                <div class="controls">
-                    <button id="start-btn" class="btn btn-primary">
-                        <span class="icon">⏺</span> Start Recording
-                    </button>
-                    <button id="stop-btn" class="btn btn-danger" disabled>
-                        <span class="icon">⏹</span> Stop Recording
-                    </button>
+                <!-- Upload Mode -->
+                <div id="upload-mode" style="display: none;">
+                    <div class="upload-area" id="upload-area">
+                        <div class="upload-icon">📁</div>
+                        <p class="upload-text">Drag and drop a video file here</p>
+                        <p class="upload-subtext">or click to browse</p>
+                        <input type="file" id="video-upload" accept="video/*" hidden>
+                        <p class="upload-formats">Supports: MP4, MOV, WebM</p>
+                    </div>
+
+                    <div id="upload-preview-container" style="display: none;">
+                        <div class="video-container">
+                            <video id="upload-preview" controls playsinline></video>
+                        </div>
+                        <div class="controls">
+                            <button id="analyze-upload-btn" class="btn btn-primary">
+                                <span class="icon">🎯</span> Analyze Head Movement
+                            </button>
+                            <button id="clear-upload-btn" class="btn btn-secondary">
+                                <span class="icon">🗑️</span> Clear
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Detected Swings List -->
@@ -84,6 +125,12 @@
                         <span class="mode-icon">📸</span>
                         <h4>Position Compare</h4>
                         <p>10 still frames side-by-side</p>
+                    </button>
+
+                    <button id="headtrack-mode-btn" class="mode-btn mode-btn-highlight">
+                        <span class="mode-icon">🎯</span>
+                        <h4>Head Tracking</h4>
+                        <p>Track head movement through swing</p>
                     </button>
                 </div>
 
@@ -133,6 +180,77 @@
                         <span class="icon">⬇️</span> Download
                     </button>
                     <button id="back-to-clips-btn" class="btn btn-secondary">
+                        <span class="icon">←</span> Back to All Clips
+                    </button>
+                </div>
+            </section>
+
+            <!-- Head Tracking Section -->
+            <section id="headtrack-section" class="card" style="display: none;">
+                <h2>🎯 Head Tracking Analysis</h2>
+
+                <!-- Clip Selection for Head Tracking -->
+                <div id="headtrack-clip-selection">
+                    <p class="headtrack-instruction">Select a swing clip to analyze head movement</p>
+                    <div class="clips-grid" id="headtrack-clips-grid">
+                        <!-- Clips will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Processing indicator -->
+                <div id="headtrack-processing" style="display: none;">
+                    <div class="loader"></div>
+                    <p class="processing-text">Analyzing head movement... This may take a moment.</p>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" id="headtrack-progress"></div>
+                    </div>
+                    <p id="headtrack-progress-text">0%</p>
+                </div>
+
+                <!-- Results -->
+                <div id="headtrack-results" style="display: none;">
+                    <div class="headtrack-video-container">
+                        <video id="headtrack-video" loop playsinline></video>
+                        <canvas id="headtrack-canvas"></canvas>
+                    </div>
+
+                    <div class="headtrack-controls">
+                        <button id="headtrack-play-btn" class="btn btn-primary">
+                            <span class="icon">▶️</span> Play
+                        </button>
+                        <button id="headtrack-reset-btn" class="btn btn-secondary">
+                            <span class="icon">🔄</span> Reset
+                        </button>
+                        <label class="headtrack-toggle">
+                            <input type="checkbox" id="headtrack-show-trace" checked>
+                            <span>Show Trace</span>
+                        </label>
+                        <label class="headtrack-toggle">
+                            <input type="checkbox" id="headtrack-show-box" checked>
+                            <span>Show Head Box</span>
+                        </label>
+                    </div>
+
+                    <div class="headtrack-stats">
+                        <div class="stat-item">
+                            <span class="stat-label">Total Movement</span>
+                            <span class="stat-value" id="stat-total-movement">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Max Deviation</span>
+                            <span class="stat-value" id="stat-max-deviation">--</span>
+                        </div>
+                        <div class="stat-item">
+                            <span class="stat-label">Stability Score</span>
+                            <span class="stat-value" id="stat-stability">--</span>
+                        </div>
+                    </div>
+
+                    <p class="headtrack-tip">💡 Tip: A stable head during the swing is key to consistent ball contact. The trace shows your head movement path - aim for minimal vertical and horizontal drift.</p>
+                </div>
+
+                <div class="controls">
+                    <button id="headtrack-back-btn" class="btn btn-secondary">
                         <span class="icon">←</span> Back to All Clips
                     </button>
                 </div>
