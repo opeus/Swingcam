@@ -1473,8 +1473,7 @@ uploadModeBtn.addEventListener('click', switchToUploadMode);
 analyzeUploadBtn.addEventListener('click', analyzeUploadedVideo);
 clearUploadBtn.addEventListener('click', clearUpload);
 
-// File upload handling
-uploadArea.addEventListener('click', () => videoUpload.click());
+// File upload handling - input overlays the upload area for iOS compatibility
 videoUpload.addEventListener('change', (e) => {
     if (e.target.files.length > 0) {
         handleFileSelect(e.target.files[0]);

@@ -753,6 +753,7 @@ footer a:hover {
 
 /* Upload Area */
 .upload-area {
+    position: relative;
     border: 2px dashed var(--border-color);
     border-radius: 0.75rem;
     padding: 3rem 2rem;
@@ -762,6 +763,20 @@ footer a:hover {
     background: var(--background);
     max-width: 500px;
     margin: 0 auto;
+}
+
+/* File input overlay for iOS compatibility */
+.upload-input-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 10;
+    /* iOS Safari requires the input to be visible enough to be tappable */
+    -webkit-appearance: none;
 }
 
 .upload-area:hover,
